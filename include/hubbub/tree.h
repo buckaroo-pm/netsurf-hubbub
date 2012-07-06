@@ -288,8 +288,8 @@ typedef struct hubbub_tree_handler {
 	hubbub_tree_add_attributes add_attributes;	/**< Add attributes */
 	hubbub_tree_set_quirks_mode set_quirks_mode;	/**< Set quirks mode */
 	hubbub_tree_encoding_change encoding_change;	/**< Change encoding */
-	hubbub_tree_complete_script complete_script;	/**< Script Complete */
 	void *ctx;					/**< Context pointer */
+	hubbub_tree_complete_script complete_script;	/**< Script Complete */
 } hubbub_tree_handler;
 
 #ifdef __cplusplus
