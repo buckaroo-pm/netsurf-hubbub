@@ -152,6 +152,7 @@ hubbub_error hubbub_parser_setopt(hubbub_parser *parser,
 				HUBBUB_TOKENISER_TOKEN_HANDLER,
 				(hubbub_tokeniser_optparams *) params);
 		break;
+
 	case HUBBUB_PARSER_ERROR_HANDLER:
 		/* The error handler does not cascade, so tell both the
 		 * treebuilder (if extant) and the tokeniser. */
@@ -166,11 +167,19 @@ hubbub_error hubbub_parser_setopt(hubbub_parser *parser,
 					(hubbub_tokeniser_optparams *) params);
 		}
 		break;
+
 	case HUBBUB_PARSER_CONTENT_MODEL:
 		result = hubbub_tokeniser_setopt(parser->tok,
 				HUBBUB_TOKENISER_CONTENT_MODEL,
 				(hubbub_tokeniser_optparams *) params);
 		break;
+
+	case HUBBUB_PARSER_PAUSE:
+		result = hubbub_tokeniser_setopt(parser->tok,
+				HUBBUB_TOKENISER_PAUSE,
+				(hubbub_tokeniser_optparams *) params);
+		break;
+
 	case HUBBUB_PARSER_TREE_HANDLER:
 		if (parser->tb != NULL) {
 			result = hubbub_treebuilder_setopt(parser->tb,
@@ -178,6 +187,7 @@ hubbub_error hubbub_parser_setopt(hubbub_parser *parser,
 					(hubbub_treebuilder_optparams *) params);
 		}
 		break;
+
 	case HUBBUB_PARSER_DOCUMENT_NODE:
 		if (parser->tb != NULL) {
 			result = hubbub_treebuilder_setopt(parser->tb,
@@ -185,6 +195,7 @@ hubbub_error hubbub_parser_setopt(hubbub_parser *parser,
 					(hubbub_treebuilder_optparams *) params);
 		}
 		break;
+
 	case HUBBUB_PARSER_ENABLE_SCRIPTING:
 		if (parser->tb != NULL) {
 			result = hubbub_treebuilder_setopt(parser->tb,
@@ -192,6 +203,7 @@ hubbub_error hubbub_parser_setopt(hubbub_parser *parser,
 					(hubbub_treebuilder_optparams *) params);
 		}
 		break;
+
 	default:
 		result = HUBBUB_INVALID;
 	}
@@ -265,41 +277,6 @@ hubbub_error hubbub_parser_parse_chunk(hubbub_parser *parser,
 
 	return HUBBUB_OK;
 }
-
-#if 0
-/**
- * Pass a chunk of extraneous data to a hubbub parser for parsing
- *
- * \param parser  Parser instance to use
- * \param data    Data to parse (encoded in UTF-8)
- * \param len     Length, in byte, of data
- * \return HUBBUB_OK on success, appropriate error otherwise
- */
-hubbub_error hubbub_parser_parse_extraneous_chunk(hubbub_parser *parser,
-		const uint8_t *data, size_t len)
-{
-	hubbub_error error;
-
-	/** \todo In some cases, we don't actually want script-inserted
-	 * data to be parsed until later. We'll need some way of flagging
-	 * this through the public API, and the inputstream API will need
-	 * some way of marking the insertion point so that, when the
-	 * tokeniser is run, only the inserted chunk is parsed. */
-
-	if (parser == NULL || data == NULL)
-		return HUBBUB_BADPARM;
-
-	error = parserutils_inputstream_insert(parser->stream, data, len);
-	if (error != HUBBUB_OK)
-		return error;
-
-	error = hubbub_tokeniser_run(parser->tok);
-	if (error != HUBBUB_OK)
-		return error;
-
-	return HUBBUB_OK;
-}
-#endif
 
 /**
  * Inform the parser that the last chunk of data has been parsed
