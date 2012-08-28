@@ -83,11 +83,9 @@ int main(int argc, char **argv)
 				printf("Test: %s\n",
 					json_object_get_string(val));
 			} else if (strcmp(key, "input") == 0) {
-				int len;
 				ctx.input = (const uint8_t *)
-						json_object_get_string_len(val,
-						&len);
-				ctx.input_len = len;
+					json_object_get_string(val);
+				ctx.input_len =	json_object_get_string_len(val);
 			} else if (strcmp(key, "output") == 0) {
 				ctx.output = json_object_get_array(val);
 				ctx.output_index = 0;
@@ -427,9 +425,10 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 		break;
 	case HUBBUB_TOKEN_CHARACTER:
 	{
-		int expstrlen;
-		char *expstr = json_object_get_string_len(
-				array_list_get_idx(items, 1), &expstrlen);
+		int expstrlen = json_object_get_string_len(
+				array_list_get_idx(items, 1));
+		char *expstr =json_object_get_string( 
+				array_list_get_idx(items, 1));
 		const char *gotstr = (const char *)
 				token->data.character.ptr;
 		size_t len = min(token->data.character.len,
