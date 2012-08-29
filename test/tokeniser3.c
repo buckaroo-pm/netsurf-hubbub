@@ -81,10 +81,9 @@ int main(int argc, char **argv)
 				printf("Test: %s\n",
 					json_object_get_string(val));
 			} else if (strcmp(key, "input") == 0) {
-				int len;
+				int len = json_object_get_string_len(val);
 				ctx.input = (const uint8_t *)
-						json_object_get_string_len(val,
-						&len);
+						json_object_get_string(val);
 				ctx.input_len = len;
 			} else if (strcmp(key, "output") == 0) {
 				ctx.output = json_object_get_array(val);
@@ -170,7 +169,7 @@ void run_test(context *ctx)
 			params.content_model.model =
 					HUBBUB_CONTENT_MODEL_PCDATA;
 		} else {
-			char *cm = json_object_get_string(
+			const char *cm = json_object_get_string(
 				(struct json_object *)
 				array_list_get_idx(ctx->content_model, i));
 
@@ -273,11 +272,11 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 	switch (token->type) {
 	case HUBBUB_TOKEN_DOCTYPE:
 	{
-		char *expname = json_object_get_string(
+		const char *expname = json_object_get_string(
 				array_list_get_idx(items, 1));
-		char *exppub = json_object_get_string(
+		const char *exppub = json_object_get_string(
 				array_list_get_idx(items, 2));
-		char *expsys = json_object_get_string(
+		const char *expsys = json_object_get_string(
 				array_list_get_idx(items, 3));
 		bool expquirks = !json_object_get_boolean(
 				array_list_get_idx(items, 4));
@@ -337,7 +336,7 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 		break;
 	case HUBBUB_TOKEN_START_TAG:
 	{
-		char *expname = json_object_get_string(
+		const char *expname = json_object_get_string(
 				array_list_get_idx(items, 1));
 		struct lh_entry *expattrs = json_object_get_object(
 				array_list_get_idx(items, 2))->head;
@@ -371,7 +370,7 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 
 		for (i = 0; i < token->data.tag.n_attributes; i++) {
 			char *expname = (char *) expattrs->k;
-			char *expval = json_object_get_string(
+			const char *expval = json_object_get_string(
 					(struct json_object *) expattrs->v);
 			const char *gotname = (const char *)
 				token->data.tag.attributes[i].name.ptr;
@@ -400,7 +399,7 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 		break;
 	case HUBBUB_TOKEN_END_TAG:
 	{
-		char *expname = json_object_get_string(
+		const char *expname = json_object_get_string(
 				array_list_get_idx(items, 1));
 		const char *tagname = (const char *)
 				token->data.tag.name.ptr;
@@ -417,7 +416,7 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 		break;
 	case HUBBUB_TOKEN_COMMENT:
 	{
-		char *expstr = json_object_get_string(
+		const char *expstr = json_object_get_string(
 				array_list_get_idx(items, 1));
 		const char *gotstr = (const char *)
 				token->data.comment.ptr;
@@ -432,9 +431,10 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 		break;
 	case HUBBUB_TOKEN_CHARACTER:
 	{
-		int expstrlen;
-		char *expstr = json_object_get_string_len(
-				array_list_get_idx(items, 1), &expstrlen);
+		int expstrlen = json_object_get_string_len(
+				array_list_get_idx(items, 1));
+		const char *expstr = json_object_get_string(
+				array_list_get_idx(items, 1));
 		const char *gotstr = (const char *)
 				token->data.character.ptr;
 		size_t len = min(token->data.character.len,
