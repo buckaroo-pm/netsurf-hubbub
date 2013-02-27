@@ -213,19 +213,20 @@ int main(int argc, char **argv)
 		 * change_encoding() will have put the new charset into
 		 * c->encoding.
 		 */
-		hubbub_parser *temp;
+		context *c2;
 
-		if (hubbub_parser_create(c->encoding, true, myrealloc, NULL,
-				&temp) != HUBBUB_OK) {
-			destroy_context(c);
+		error = create_context(c->encoding, &c2);
+		if (error != OK) {
+			destroy_context(c2);
 			free(buf);
 			fclose(input);
-			fprintf(stderr, "Failed recreating parser\n");
+			fprintf(stderr, "Failed recreating context\n");
 			return 1;
 		}
 
-		hubbub_parser_destroy(c->parser);
-		c->parser = temp;
+		destroy_context(c);
+
+		c = c2;
 
 		/* Retry the parse */
 		error = parse_chunk(c, buf, len);
