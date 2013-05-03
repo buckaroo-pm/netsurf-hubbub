@@ -90,7 +90,7 @@ static int run_test(int argc, char **argv, unsigned int CHUNK_SIZE)
 	hubbub_parser *parser;
 	hubbub_parser_optparams params;
 	FILE *fp;
-	size_t len, origlen;
+	size_t len;
 	uint8_t *buf = malloc(CHUNK_SIZE);
 	const char *charset;
 	hubbub_charset_source cssource;
@@ -125,7 +125,7 @@ static int run_test(int argc, char **argv, unsigned int CHUNK_SIZE)
 	}
 
 	fseek(fp, 0, SEEK_END);
-	origlen = len = ftell(fp);
+	len = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 
 	while (len > 0) {

@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 	hubbub_tokeniser *tok;
 	hubbub_tokeniser_optparams params;
 	FILE *fp;
-	size_t len, origlen;
+	size_t len;
 #define CHUNK_SIZE (4096)
 	uint8_t buf[CHUNK_SIZE];
 
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 	}
 
 	fseek(fp, 0, SEEK_END);
-	origlen = len = ftell(fp);
+	len = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 
 	while (len > 0) {
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
                         break;
                 
 		assert(parserutils_inputstream_append(stream,
-				buf, bytes_read) == HUBBUB_OK);
+				buf, bytes_read) == PARSERUTILS_OK);
 
 		len -= bytes_read;
 

@@ -149,7 +149,7 @@ void run_test(context *ctx)
 					ctx->last_start_tag);
 
 			assert(parserutils_inputstream_append(stream,
-				buf, len - 1) == HUBBUB_OK);
+				buf, len - 1) == PARSERUTILS_OK);
 
 			assert(hubbub_tokeniser_run(tok) == HUBBUB_OK);
 
@@ -196,10 +196,10 @@ void run_test(context *ctx)
 				&params) == HUBBUB_OK);
 
 		assert(parserutils_inputstream_append(stream,
-				ctx->input, ctx->input_len) == HUBBUB_OK);
+				ctx->input, ctx->input_len) == PARSERUTILS_OK);
 
 		assert(parserutils_inputstream_append(stream, NULL, 0) ==
-				HUBBUB_OK);
+				PARSERUTILS_OK);
 
 		printf("Input: '%.*s' (%d)\n", (int) ctx->input_len,
 				(const char *) ctx->input, 
