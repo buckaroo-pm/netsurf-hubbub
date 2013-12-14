@@ -12,13 +12,6 @@
 
 static hubbub_error token_handler(const hubbub_token *token, void *pw);
 
-static void *myrealloc(void *ptr, size_t len, void *pw)
-{
-	UNUSED(pw);
-
-	return realloc(ptr, len);
-}
-
 static int run_test(int argc, char **argv, unsigned int CHUNK_SIZE)
 {
 	hubbub_parser *parser;
@@ -31,8 +24,7 @@ static int run_test(int argc, char **argv, unsigned int CHUNK_SIZE)
 
 	UNUSED(argc);
 
-	assert(hubbub_parser_create("UTF-8", false, myrealloc, NULL, &parser) ==
-			HUBBUB_OK);
+	assert(hubbub_parser_create("UTF-8", false, &parser) == HUBBUB_OK);
 
 	params.token_handler.handler = token_handler;
 	params.token_handler.pw = NULL;
