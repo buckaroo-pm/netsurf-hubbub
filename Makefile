@@ -61,7 +61,7 @@ ifeq ($(WANT_TEST),yes)
 endif
 
 # Extra installation rules
-I := /include/hubbub
+I := /$(INCLUDEDIR)/hubbub
 INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/hubbub/errors.h
 INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/hubbub/functypes.h
 INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/hubbub/hubbub.h
