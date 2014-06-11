@@ -4,6 +4,7 @@
 
 entities	Named entity dictionary
 csdetect	Charset detection			csdetect
+csdetect	Charset detection			encoding
 parser		Public parser API			html
 tokeniser	HTML tokeniser				html
 tokeniser2	HTML tokeniser (again)			tokeniser2

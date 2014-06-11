@@ -2,7 +2,7 @@
 
 {"description":"DOCTYPE without name",
 "input":"<!DOCTYPE>",
-"output":["ParseError", "ParseError", ["DOCTYPE", "", null, null, false]]},
+"output":["ParseError", "ParseError", ["DOCTYPE", null, null, null, false]]},
 
 {"description":"DOCTYPE without space before name",
 "input":"<!DOCTYPEhtml>",
@@ -82,7 +82,7 @@
 
 {"description":"Entity without a name",
 "input":"&;",
-"output":["ParseError", ["Character", "&;"]]},
+"output":[["Character", "&;"]]},
 
 {"description":"Unescaped ampersand in attribute value",
 "input":"<h a='&'>",
@@ -134,7 +134,7 @@
 
 {"description":"Null Byte Replacement",
 "input":"\u0000",
-"output":["ParseError", ["Character", "\ufffd"]]},
+"output":["ParseError", ["Character", "\u0000"]]},
 
 {"description":"Comment with dash",
 "input":"<!---x",
@@ -158,6 +158,22 @@
 
 {"description":"Single-quote after attribute name",
 "input":"<h a '>",
-"output":["ParseError", ["StartTag", "h", {"a":"", "'":""}]]}
+"output":["ParseError", ["StartTag", "h", {"a":"", "'":""}]]},
+
+{"description":"Empty end tag with following characters",
+"input":"a</>bc",
+"output":[["Character", "a"], "ParseError", ["Character", "bc"]]},
+
+{"description":"Empty end tag with following tag",
+"input":"a</><b>c",
+"output":[["Character", "a"], "ParseError", ["StartTag", "b", {}], ["Character", "c"]]},
+
+{"description":"Empty end tag with following comment",
+"input":"a</><!--b-->c",
+"output":[["Character", "a"], "ParseError", ["Comment", "b"], ["Character", "c"]]},
+
+{"description":"Empty end tag with following end tag",
+"input":"a</></b>c",
+"output":[["Character", "a"], "ParseError", ["EndTag", "b"], ["Character", "c"]]}
 
 ]}
