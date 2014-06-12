@@ -44,6 +44,12 @@ static const hubbub_string u_fffd_str = { u_fffd, sizeof(u_fffd) };
 static const uint8_t lf = '\n';
 static const hubbub_string lf_str = { &lf, 1 };
 
+/**
+ * UTF-8 encoding of U+0000 NULL CHARACTER
+ */
+static const uint8_t u_null[1] = { '\x00'};
+static const hubbub_string u_null_str = { u_null, sizeof(u_null) };
+
 
 /**
  * Tokeniser states
@@ -751,8 +757,8 @@ hubbub_error hubbub_tokeniser_handle_data(hubbub_tokeniser *tokeniser)
 				emit_current_chars(tokeniser);
 			}
 
-			/* Emit a replacement character */
-			emit_character_token(tokeniser, &u_fffd_str);
+			/* Emit a null character */
+			emit_character_token(tokeniser, &u_null_str);
 
 			/* Advance past NUL */
 			parserutils_inputstream_advance(tokeniser->input, 1);

@@ -132,7 +132,7 @@ void run_test(context *ctx)
 
 		if (ctx->last_start_tag != NULL) {
 			/* Fake up a start tag, in PCDATA state */
-			size_t len = strlen(ctx->last_start_tag) + 3;
+			size_t len = LEN(ctx->last_start_tag) + 3;
 			uint8_t *buf = malloc(len);
 
 			snprintf((char *) buf, len, "<%s>",
@@ -308,21 +308,21 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 				(int) token->data.doctype.system_id.len);
 		}
 
-		assert(token->data.doctype.name.len == strlen(expname));
-		assert(strncmp(gotname, expname, strlen(expname)) == 0);
+		assert(token->data.doctype.name.len == LEN(expname));
+		assert(strncmp(gotname, expname, LEN(expname)) == 0);
 
 		assert((exppub == NULL) ==
 				(token->data.doctype.public_missing == true));
 		if (exppub) {
-			assert(token->data.doctype.public_id.len == strlen(exppub));
-			assert(strncmp(gotpub, exppub, strlen(exppub)) == 0);
+			assert(token->data.doctype.public_id.len == LEN(exppub));
+			assert(strncmp(gotpub, exppub, LEN(exppub)) == 0);
 		}
 
 		assert((expsys == NULL) ==
 				(token->data.doctype.system_missing == true));
 		if (gotsys) {
-			assert(token->data.doctype.system_id.len == strlen(expsys));
-			assert(strncmp(gotsys, expsys, strlen(expsys)) == 0);
+			assert(token->data.doctype.system_id.len == LEN(expsys));
+			assert(strncmp(gotsys, expsys, LEN(expsys)) == 0);
 		}
 
 		assert(expquirks == token->data.doctype.force_quirks);
@@ -354,8 +354,8 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 			printf("attributes:\n");
 		}
 
-		assert(token->data.tag.name.len == strlen(expname));
-		assert(strncmp(tagname, expname, strlen(expname)) == 0);
+		assert(token->data.tag.name.len == LEN(expname));
+		assert(strncmp(tagname, expname, LEN(expname)) == 0);
 
 		assert((token->data.tag.n_attributes == 0) ==
 				(expattrs == NULL));
@@ -379,11 +379,11 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 					(int) namelen, gotname,
 					(int) vallen, gotval);
 
-			assert(namelen == strlen(expname));
+			assert(namelen == LEN(expname));
 			assert(strncmp(gotname, expname,
 						strlen(expname)) == 0);
-			assert(vallen == strlen(expval));
-			assert(strncmp(gotval, expval, strlen(expval)) == 0);
+			assert(vallen == LEN(expval));
+			assert(strncmp(gotval, expval, LEN(expval)) == 0);
 
 			expattrs = expattrs->next;
 		}
@@ -404,8 +404,8 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 				(token->data.tag.n_attributes > 0) ?
 						"attributes:" : "");
 
-		assert(token->data.tag.name.len == strlen(expname));
-		assert(strncmp(tagname, expname, strlen(expname)) == 0);
+		assert(token->data.tag.name.len == LEN(expname));
+		assert(strncmp(tagname, expname, LEN(expname)) == 0);
 	}
 		break;
 	case HUBBUB_TOKEN_COMMENT:
@@ -419,8 +419,8 @@ hubbub_error token_handler(const hubbub_token *token, void *pw)
 		printf("     got: '%.*s'\n",
 				(int) token->data.comment.len, gotstr);
 
-		assert(token->data.comment.len == strlen(expstr));
-		assert(strncmp(gotstr, expstr, strlen(expstr)) == 0);
+		assert(token->data.comment.len == LEN(expstr));
+		assert(strncmp(gotstr, expstr, LEN(expstr)) == 0);
 	}
 		break;
 	case HUBBUB_TOKEN_CHARACTER:

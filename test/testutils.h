@@ -10,6 +10,18 @@
 #define UNUSED(x) ((x) = (x))
 #endif
 
+#ifndef LEN
+uint32_t string_length(const char *str);
+uint32_t string_length(const char *str)
+{
+	if(str == NULL)
+		return 0;
+	return strlen(str);
+}
+#define LEN(x) string_length(x)
+#endif
+
+
 /* Redefine assert, so we can simply use the standard assert mechanism
  * within testcases and exit with the right output for the testrunner
  * to do the right thing. */
