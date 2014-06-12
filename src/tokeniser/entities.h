@@ -14,7 +14,7 @@
 #include <hubbub/functypes.h>
 
 /* Step-wise search for an entity in the dictionary */
-hubbub_error hubbub_entities_search_step(uint8_t c, uint32_t *result,
+hubbub_error hubbub_entities_search_step(uint8_t c, hubbub_string *result,
 		int32_t *context);
 
 #endif

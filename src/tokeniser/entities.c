@@ -7,15 +7,20 @@
 
 #include "utils/utils.h"
 #include "tokeniser/entities.h"
+/**
+ * UTF-8 encoding of U+FFFD REPLACEMENT CHARACTER
+ */
+static const uint8_t u_fffd[3] = { '\xEF', '\xBF', '\xBD' };
+static const hubbub_string u_fffd_str = { u_fffd, sizeof(u_fffd) };
 
 /** Node in our entity tree */
 typedef struct hubbub_entity_node {
-        /* Do not reorder this without fixing make-entities.pl */
+	/* Do not reorder this without fixing make-entities.pl */
 	uint8_t split;	/**< Data to split on */
 	int32_t lt;	/**< Subtree for data less than split */
 	int32_t eq;	/**< Subtree for data equal to split */
 	int32_t gt;	/**< Subtree for data greater than split */
-	uint32_t value;	/**< Data for this node */
+	hubbub_string value;	/**< Data for this node */
 } hubbub_entity_node;
 
 #include "entities.inc"
@@ -38,7 +43,7 @@ typedef struct hubbub_entity_node {
  * is found.
  */
 static hubbub_error hubbub_entity_tree_search_step(uint8_t c,
-		uint32_t *result, int32_t *context)
+		hubbub_string *result, int32_t *context)
 {
 	bool match = false;
 	int32_t p;
@@ -63,7 +68,7 @@ static hubbub_error hubbub_entity_tree_search_step(uint8_t c,
 				match = true;
 				*result = dict[dict[p].eq].value;
 				p = dict[p].eq;
-			} else if (dict[p].value != 0) {
+			} else if (dict[p].value.ptr != NULL) {
 				match = true;
 				*result = dict[p].value;
 				p = dict[p].eq;
@@ -100,13 +105,13 @@ static hubbub_error hubbub_entity_tree_search_step(uint8_t c,
  * The location pointed to by ::result will be set to U+FFFD unless a match
  * is found.
  */
-hubbub_error hubbub_entities_search_step(uint8_t c, uint32_t *result,
+hubbub_error hubbub_entities_search_step(uint8_t c, hubbub_string *result,
 		int32_t *context)
 {
 	if (result == NULL)
 		return HUBBUB_BADPARM;
 
-        *result = 0xFFFD;
-        
+	*result = u_fffd_str;
+
 	return hubbub_entity_tree_search_step(c, result, context);
 }

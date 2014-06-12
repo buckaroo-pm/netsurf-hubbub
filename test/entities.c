@@ -4,7 +4,7 @@
 
 int main(int argc, char **argv)
 {
-	uint32_t result;
+	hubbub_string result;
 	int32_t context = -1;
 
 	UNUSED(argc);

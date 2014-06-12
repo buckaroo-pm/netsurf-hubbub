@@ -4,6 +4,7 @@
  *                http://www.opensource.org/licenses/mit-license.php
  * Copyright 2007 John-Mark Bell <jmb@netsurf-browser.org>
  * Copyright 2008 Andrew Sidwell <takkaria@netsurf-browser.org>
+ * Copyright 2014 Rupinder Singh Khokhar <rsk1coder99@gmail.com>
  */
 #include <assert.h>
 #include <stdbool.h>
@@ -128,7 +129,7 @@ typedef struct hubbub_tokeniser_context {
 	struct {
 		size_t offset;			/**< Offset in buffer */
 		uint32_t length;		/**< Length of entity */
-		uint32_t codepoint;		/**< UCS4 codepoint */
+		hubbub_string codepoint;	/**< UTF-8 codepoint */
 		bool complete;			/**< True if match complete */
 
 		uint32_t poss_length;		/**< Optimistic length
@@ -147,6 +148,12 @@ typedef struct hubbub_tokeniser_context {
 						 * numeric entity value */
 		hubbub_tokeniser_state return_state;	/**< State we were
 							 * called from */
+		union {
+			uint32_t ucs4;		/**<UCS-4 value for numeric
+						 * entity*/
+			uint8_t numeric_buf[6]; /**<UTF-8 value for numeric
+						 * entity */
+		} numeric_state;
 	} match_entity;				/**< Entity matching state */
 
 	struct {
@@ -810,19 +817,12 @@ hubbub_error hubbub_tokeniser_handle_character_reference_data(
 	} else {
 		hubbub_token token;
 
-		uint8_t utf8[6];
-		uint8_t *utf8ptr = utf8;
-		size_t len = sizeof(utf8);
-
 		token.type = HUBBUB_TOKEN_CHARACTER;
-
-		if (tokeniser->context.match_entity.codepoint) {
-			parserutils_charset_utf8_from_ucs4(
-				tokeniser->context.match_entity.codepoint,
-				&utf8ptr, &len);
-
-			token.data.character.ptr = utf8;
-			token.data.character.len = sizeof(utf8) - len;
+		if (tokeniser->context.match_entity.codepoint.ptr != NULL) {
+			token.data.character.ptr =
+				tokeniser->context.match_entity.codepoint.ptr;
+			token.data.character.len =
+				tokeniser->context.match_entity.codepoint.len;
 
 			hubbub_tokeniser_emit_token(tokeniser, &token);
 
@@ -833,6 +833,7 @@ hubbub_error hubbub_tokeniser_handle_character_reference_data(
 		} else {
 			parserutils_error error;
 			const uint8_t *cptr = NULL;
+			size_t len;
 
 			error = parserutils_inputstream_peek(
 					tokeniser->input,
@@ -1607,23 +1608,17 @@ hubbub_error hubbub_tokeniser_handle_character_reference_in_attribute_value(
 		hubbub_attribute *attr = &ctag->attributes[
 				ctag->n_attributes - 1];
 
-		uint8_t utf8[6];
-		uint8_t *utf8ptr = utf8;
-		size_t len = sizeof(utf8);
-
-		if (tokeniser->context.match_entity.codepoint) {
-			parserutils_charset_utf8_from_ucs4(
-				tokeniser->context.match_entity.codepoint,
-				&utf8ptr, &len);
-
-			COLLECT_MS(attr->value, utf8, sizeof(utf8) - len);
+		if (tokeniser->context.match_entity.codepoint.ptr != NULL) {
+			COLLECT_MS(attr->value,
+					tokeniser->context.match_entity.codepoint.ptr,
+					tokeniser->context.match_entity.codepoint.len);
 
 			/* +1 for the ampersand */
 			tokeniser->context.pending +=
 					tokeniser->context.match_entity.length
 					+ 1;
 		} else {
-			size_t len = 0;
+			size_t len;
 			const uint8_t *cptr = NULL;
 			parserutils_error error;
 
@@ -2899,7 +2894,9 @@ hubbub_error hubbub_tokeniser_consume_character_reference(
 	if (error != PARSERUTILS_OK) {
 		if (error == PARSERUTILS_EOF) {
 			tokeniser->context.match_entity.complete = true;
-			tokeniser->context.match_entity.codepoint = 0;
+			tokeniser->context.match_entity.codepoint.len = 0;
+			tokeniser->context.match_entity.codepoint.ptr = NULL;
+			tokeniser->context.match_entity.numeric_state.ucs4 = 0;
 			return HUBBUB_OK;
 		} else {
 			return hubbub_error_from_parserutils_error(error);
@@ -2913,13 +2910,15 @@ hubbub_error hubbub_tokeniser_consume_character_reference(
 	tokeniser->context.match_entity.poss_length = 0;
 	tokeniser->context.match_entity.length = 0;
 	tokeniser->context.match_entity.base = 0;
-	tokeniser->context.match_entity.codepoint = 0;
 	tokeniser->context.match_entity.had_data = false;
 	tokeniser->context.match_entity.return_state = tokeniser->state;
 	tokeniser->context.match_entity.complete = false;
 	tokeniser->context.match_entity.overflow = false;
 	tokeniser->context.match_entity.context = -1;
 	tokeniser->context.match_entity.prev_len = len;
+	tokeniser->context.match_entity.numeric_state.ucs4 = 0;
+	tokeniser->context.match_entity.codepoint.ptr = NULL;
+	tokeniser->context.match_entity.codepoint.len = 0;
 
 	/* Reset allowed character for future calls */
 	tokeniser->context.allowed_char = '\0';
@@ -2928,7 +2927,6 @@ hubbub_error hubbub_tokeniser_consume_character_reference(
 			c == '<' || c == '&' ||
 			(allowed_char && c == allowed_char)) {
 		tokeniser->context.match_entity.complete = true;
-		tokeniser->context.match_entity.codepoint = 0;
 	} else if (c == '#') {
 		tokeniser->context.match_entity.length += len;
 		tokeniser->state = STATE_NUMBERED_ENTITY;
@@ -2975,22 +2973,22 @@ hubbub_error hubbub_tokeniser_handle_numbered_entity(
 		if (ctx->match_entity.base == 10 &&
 				('0' <= c && c <= '9')) {
 			ctx->match_entity.had_data = true;
-			ctx->match_entity.codepoint =
-				ctx->match_entity.codepoint * 10 + (c - '0');
-
+			ctx->match_entity.numeric_state.ucs4 =
+				ctx->match_entity.numeric_state.ucs4 * 10 + (c - '0');
 			ctx->match_entity.length += len;
 		} else if (ctx->match_entity.base == 16 &&
 				(('0' <= c && c <= '9') ||
 				('A' <= (c & ~0x20) &&
 						(c & ~0x20) <= 'F'))) {
 			ctx->match_entity.had_data = true;
-			ctx->match_entity.codepoint *= 16;
+			ctx->match_entity.numeric_state.ucs4 *= 16;
 
 			if ('0' <= c && c <= '9') {
-				ctx->match_entity.codepoint += (c - '0');
+				ctx->match_entity.numeric_state.ucs4 +=
+					(c-'0');
 			} else {
-				ctx->match_entity.codepoint +=
-						((c & ~0x20) - 'A' + 10);
+				ctx->match_entity.numeric_state.ucs4 +=
+					((c & ~0x20) - 'A' + 10);
 			}
 
 			ctx->match_entity.length += len;
@@ -2998,7 +2996,7 @@ hubbub_error hubbub_tokeniser_handle_numbered_entity(
 			break;
 		}
 
-		if (ctx->match_entity.codepoint >= 0x10FFFF) {
+		if (ctx->match_entity.numeric_state.ucs4 >= 0x10FFFF) {
 			ctx->match_entity.overflow = true;
 		}
 	}
@@ -3014,7 +3012,8 @@ hubbub_error hubbub_tokeniser_handle_numbered_entity(
 
 	/* Had data, so calculate final codepoint */
 	if (ctx->match_entity.had_data) {
-		uint32_t cp = ctx->match_entity.codepoint;
+		uint32_t cp =
+			ctx->match_entity.numeric_state.ucs4;
 
 		if (0x80 <= cp && cp <= 0x9F) {
 			cp = cp1252Table[cp - 0x80];
@@ -3031,8 +3030,22 @@ hubbub_error hubbub_tokeniser_handle_numbered_entity(
 			 * in the loop above to avoid overflow */
 			cp = 0xFFFD;
 		}
+		ctx->match_entity.numeric_state.ucs4 = cp;
 
-		ctx->match_entity.codepoint = cp;
+		/*Convert UCS-4 to UTF-8*/
+		uint8_t *utf8_ptr=
+			(ctx->match_entity.numeric_state.numeric_buf);
+		size_t buf_len=
+			sizeof(ctx->match_entity.numeric_state.numeric_buf);
+		parserutils_charset_utf8_from_ucs4(
+			ctx->match_entity.numeric_state.ucs4,
+			&utf8_ptr,
+			&buf_len);
+		ctx->match_entity.codepoint.ptr=
+			(ctx->match_entity.numeric_state.numeric_buf);
+		ctx->match_entity.codepoint.len=
+			sizeof(ctx->match_entity.numeric_state.numeric_buf)-buf_len;
+
 	}
 
 	/* Flag completion */
@@ -3056,11 +3069,10 @@ hubbub_error hubbub_tokeniser_handle_named_entity(hubbub_tokeniser *tokeniser)
 			ctx->match_entity.offset +
 					ctx->match_entity.poss_length,
 			&cptr, &len)) == PARSERUTILS_OK) {
-		uint32_t cp;
+		hubbub_string cp;
 
 		uint8_t c = *cptr;
 		hubbub_error error;
-
 		if (c > 0x7F) {
 			/* Entity names are ASCII only */
 			break;
@@ -3119,14 +3131,17 @@ hubbub_error hubbub_tokeniser_handle_named_entity(hubbub_tokeniser *tokeniser)
 					error == PARSERUTILS_EOF);
 
 			if (error == PARSERUTILS_EOF) {
-				ctx->match_entity.codepoint = 0;
+				ctx->match_entity.codepoint.len = 0;
+				ctx->match_entity.codepoint.ptr = NULL;
 			}
 
 			c = *cptr;
 			if ((0x0030 <= c && c <= 0x0039) ||
 					(0x0041 <= c && c <= 0x005A) ||
-					(0x0061 <= c && c <= 0x007A)) {
-				ctx->match_entity.codepoint = 0;
+					(0x0061 <= c && c <= 0x007A) ||
+					c == '=') {
+				ctx->match_entity.codepoint.len = 0;
+				ctx->match_entity.codepoint.ptr = NULL;
 			}
 		}
 	}

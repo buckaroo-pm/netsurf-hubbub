@@ -4,8 +4,10 @@
 #                http://www.opensource.org/licenses/mit-license.php
 # Copyright 2010 Daniel Silverstone <dsilvers@netsurf-browser.org>
 #                John-Mark Bell <jmb@netsurf-browser.org>
+#                Rupinder Singh Khokhar <rsk1coder99@gmail.com>
 
 use strict;
+use Encode;
 
 use constant ENTITIES_FILE => 'build/Entities';
 use constant ENTITIES_INC  => 'src/tokeniser/entities.inc';
@@ -21,8 +23,25 @@ while (my $line = <INFILE>) {
    next if ($line eq '');
    my @elements = split /\s+/, $line;
    my $entity = shift @elements;
-   my $code = shift @elements;
-   $entities{$entity} = $code;
+   my $len = 0;
+   my $code="";
+   while (@elements) {
+     my $ucs4 = hex(shift(@elements));
+     my $utf8 = Encode::encode_utf8(pack('U', $ucs4));
+     $len += length($utf8);
+     if ($ucs4 < 0x20 || $ucs4 == 0x22 ||
+        $ucs4 == 0x27 || $ucs4 == 0x5C ||
+        $ucs4 >= 0x7f) {
+        # Unsafe, or non-ASCII: emit escaped
+        for my $octet (unpack('C*', $utf8)) {
+            $code = $code . sprintf("\\x%02x", $octet);
+        }
+     } else {
+        # Safe: emit value
+        $code = $code . $utf8;
+     }
+   }
+   $entities{$entity} = "(const uint8_t *)\"$code\",$len";
 }
 
 close(INFILE);
@@ -113,9 +132,9 @@ foreach my $node (@nodelist) {
    $split = ord($split) if ($split ne '');
    $split = 0 if ($split eq '');
 
-   $value = "0" unless defined($value);
+   $value = "NULL,0" unless defined($value);
 
-   $output .= "\t{ $split, $lt, $eq, $gt, $value },\n";
+   $output .= "\t{ $split, $lt, $eq, $gt, {$value} },\n";
 }
 
 $output .= "};\n\n";
