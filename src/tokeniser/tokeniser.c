@@ -78,6 +78,7 @@ typedef enum hubbub_tokeniser_state {
 	STATE_COMMENT,
 	STATE_COMMENT_END_DASH,
 	STATE_COMMENT_END,
+	STATE_COMMENT_END_BANG,
 	STATE_MATCH_DOCTYPE,
 	STATE_DOCTYPE,
 	STATE_BEFORE_DOCTYPE_NAME,
@@ -539,6 +540,7 @@ hubbub_error hubbub_tokeniser_run(hubbub_tokeniser *tokeniser)
 		case STATE_COMMENT_START:
 		case STATE_COMMENT_START_DASH:
 		case STATE_COMMENT:
+		case STATE_COMMENT_END_BANG:
 		case STATE_COMMENT_END_DASH:
 		case STATE_COMMENT_END:
 			cont = hubbub_tokeniser_handle_comment(tokeniser);
@@ -1894,7 +1896,8 @@ hubbub_error hubbub_tokeniser_handle_comment(hubbub_tokeniser *tokeniser)
 
 	if (c == '>' && (tokeniser->state == STATE_COMMENT_START_DASH ||
 			tokeniser->state == STATE_COMMENT_START ||
-			tokeniser->state == STATE_COMMENT_END)) {
+			tokeniser->state == STATE_COMMENT_END ||
+			tokeniser->state == STATE_COMMENT_END_BANG)) {
 		tokeniser->context.pending += len;
 
 		/** \todo parse error if state != COMMENT_END */
@@ -1916,9 +1919,21 @@ hubbub_error hubbub_tokeniser_handle_comment(hubbub_tokeniser *tokeniser)
 				return hubbub_error_from_parserutils_error(
 						error);
 			}
+		} else if (tokeniser->state == STATE_COMMENT_END_BANG) {
+			error = parserutils_buffer_append(tokeniser->buffer,
+					(uint8_t *) "--!", SLEN("--!"));
+			if (error != PARSERUTILS_OK) {
+				return hubbub_error_from_parserutils_error(
+						error);
+			}
+			tokeniser->state = STATE_COMMENT_END_DASH;
 		}
 
 		tokeniser->context.pending += len;
+	} else if (c == '!' && tokeniser->state == STATE_COMMENT_END) {
+		tokeniser->state = STATE_COMMENT_END_BANG;
+		tokeniser->context.pending += len;
+		return HUBBUB_OK;
 	} else {
 		if (tokeniser->state == STATE_COMMENT_START_DASH ||
 				tokeniser->state == STATE_COMMENT_END_DASH) {
@@ -1935,7 +1950,15 @@ hubbub_error hubbub_tokeniser_handle_comment(hubbub_tokeniser *tokeniser)
 				return hubbub_error_from_parserutils_error(
 						error);
 			}
+		} else if (tokeniser->state == STATE_COMMENT_END_BANG) {
+			error = parserutils_buffer_append(tokeniser->buffer,
+					(uint8_t *) "--!", SLEN("--!"));
+			if (error != PARSERUTILS_OK) {
+				return hubbub_error_from_parserutils_error(
+						error);
+			}
 		}
+
 
 		if (c == '\0') {
 			error = parserutils_buffer_append(tokeniser->buffer,
