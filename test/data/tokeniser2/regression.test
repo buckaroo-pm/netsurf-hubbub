@@ -1,11 +1,11 @@
 {"tests": [
 
-{"description":"CR in double-quoted attribute value",
-"input":"<foo bar=\"\r\u2022xyz\"",
+{"description":"CR in double-quoted attribute value. This test has been changes manually from <foo bar=\"\r\u2022xyz\" to <foo bar=\"\r\u2022xyz\">",
+"input":"<foo bar=\"\r\u2022xyz\">",
 "output":[["StartTag", "foo", {"bar":"\n\u2022xyz"}]]},
 
-{"description":"CR in single-quoted attribute value",
-"input":"<foo bar='\r\u2022xyz'",
+{"description":"CR in single-quoted attribute value. The input has manually been changed from <foo bar='\r\u2022xyz'> <foo bar='\r\u2022xyz'>",
+"input":"<foo bar='\r\u2022xyz'>",
 "output":[["StartTag", "foo", {"bar":"\n\u2022xyz"}]]},
 
 {"description":"CR in comment",
