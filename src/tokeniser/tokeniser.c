@@ -759,12 +759,16 @@ hubbub_error hubbub_tokeniser_handle_data(hubbub_tokeniser *tokeniser)
 				emit_current_chars(tokeniser);
 			}
 
-			/* Emit a null character */
-			emit_character_token(tokeniser, &u_null_str);
+			/* Emit a null or a replacement character */
+			if(tokeniser->content_model != HUBBUB_CONTENT_MODEL_PCDATA) {
+				emit_character_token(tokeniser, &u_fffd_str);
+			} else {
+				emit_character_token(tokeniser, &u_null_str);
+			}
 
 			/* Advance past NUL */
 			parserutils_inputstream_advance(tokeniser->input, 1);
-		} else if (c == '\r') {
+		} else if (c == '\r' && tokeniser->content_model != HUBBUB_CONTENT_MODEL_PLAINTEXT) {
 			error = parserutils_inputstream_peek(
 					tokeniser->input,
 					tokeniser->context.pending + len,

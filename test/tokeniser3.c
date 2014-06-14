@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 			} else if (strcmp(key, "lastStartTag") == 0) {
 				ctx.last_start_tag = (const char *)
 						json_object_get_string(val);
-			} else if (strcmp(key, "contentModelFlags") == 0) {
+			} else if (strcmp(key, "initialStates") == 0) {
 				ctx.content_model =
 						json_object_get_array(val);
 			} else if (strcmp(key, "processCDATA") == 0) {
@@ -167,15 +167,18 @@ void run_test(context *ctx)
 				(struct json_object *)
 				array_list_get_idx(ctx->content_model, i));
 
-			if (strcmp(cm, "PCDATA") == 0) {
+			if (strcmp(cm, "PCDATA state") == 0) {
 				params.content_model.model =
 						HUBBUB_CONTENT_MODEL_PCDATA;
-			} else if (strcmp(cm, "RCDATA") == 0) {
+			} else if (strcmp(cm, "RCDATA state") == 0) {
 				params.content_model.model =
 						HUBBUB_CONTENT_MODEL_RCDATA;
-			} else if (strcmp(cm, "CDATA") == 0) {
+			} else if (strcmp(cm, "CDATA state") == 0) {
 				params.content_model.model =
 						HUBBUB_CONTENT_MODEL_CDATA;
+			} else if (strcmp(cm, "RAWTEXT state") == 0) {
+				params.content_model.model =
+						HUBBUB_CONTENT_MODEL_RAWTEXT;
 			} else {
 				params.content_model.model =
 					HUBBUB_CONTENT_MODEL_PLAINTEXT;
