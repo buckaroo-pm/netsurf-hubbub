@@ -693,32 +693,12 @@ hubbub_error hubbub_tokeniser_handle_data(hubbub_tokeniser *tokeniser)
 			/* Don't eat the '&'; it'll be handled by entity
 			 * consumption */
 			break;
-		} else if (c == '-' &&
-				tokeniser->escape_flag == false &&
-				(tokeniser->content_model ==
-						HUBBUB_CONTENT_MODEL_RCDATA ||
-				tokeniser->content_model ==
-						HUBBUB_CONTENT_MODEL_CDATA) &&
-				tokeniser->context.pending >= 3) {
-			size_t ignore;
-			error = parserutils_inputstream_peek(
-					tokeniser->input,
-					tokeniser->context.pending - 3,
-					&cptr,
-					&ignore);
-
-			assert(error == PARSERUTILS_OK);
-
-			if (strncmp((char *)cptr,
-					"<!--", SLEN("<!--")) == 0) {
-				tokeniser->escape_flag = true;
-			}
-
-			tokeniser->context.pending += len;
 		} else if (c == '<' && (tokeniser->content_model ==
 						HUBBUB_CONTENT_MODEL_PCDATA ||
 					((tokeniser->content_model ==
 						HUBBUB_CONTENT_MODEL_RCDATA ||
+					tokeniser->content_model ==
+						HUBBUB_CONTENT_MODEL_RAWTEXT ||
 					tokeniser->content_model ==
 						HUBBUB_CONTENT_MODEL_CDATA) &&
 				tokeniser->escape_flag == false))) {
@@ -910,6 +890,7 @@ hubbub_error hubbub_tokeniser_handle_tag_open(hubbub_tokeniser *tokeniser)
 
 		tokeniser->state = STATE_CLOSE_TAG_OPEN;
 	} else if (tokeniser->content_model == HUBBUB_CONTENT_MODEL_RCDATA ||
+			tokeniser->content_model == HUBBUB_CONTENT_MODEL_RAWTEXT ||
 			tokeniser->content_model ==
 					HUBBUB_CONTENT_MODEL_CDATA) {
 		/* Return to data state with '<' still in "chars" */
@@ -982,6 +963,7 @@ hubbub_error hubbub_tokeniser_handle_close_tag_open(hubbub_tokeniser *tokeniser)
 	/**\todo fragment case */
 
 	if (tokeniser->content_model == HUBBUB_CONTENT_MODEL_RCDATA ||
+			tokeniser->content_model == HUBBUB_CONTENT_MODEL_RAWTEXT ||
 			tokeniser->content_model ==
 					HUBBUB_CONTENT_MODEL_CDATA) {
 		uint8_t *start_tag_name =
@@ -1037,73 +1019,67 @@ hubbub_error hubbub_tokeniser_handle_close_tag_open(hubbub_tokeniser *tokeniser)
 		}
 	}
 
-	if (ctx->close_tag_match.match == false &&
-			tokeniser->content_model !=
-					HUBBUB_CONTENT_MODEL_PCDATA) {
-		/* We should emit "</" here, but instead we leave it in the
-		 * buffer so the data state emits it with any characters
-		 * following it */
+
+	error = parserutils_inputstream_peek(tokeniser->input,
+			tokeniser->context.pending, &cptr, &len);
+
+	if (error == PARSERUTILS_EOF) {
+		/** \todo parse error */
+		/* Return to data state with "</" pending */
+		tokeniser->state = STATE_DATA;
+		return HUBBUB_OK;
+	} else if (error != PARSERUTILS_OK) {
+		return hubbub_error_from_parserutils_error(error);
+	}
+
+	c = *cptr;
+
+	if ('A' <= c && c <= 'Z') {
+		uint8_t lc = (c + 0x20);
+		START_BUF(tokeniser->context.current_tag.name,
+				&lc, len);
+		tokeniser->context.current_tag.n_attributes = 0;
+
+		tokeniser->context.current_tag_type =
+				HUBBUB_TOKEN_END_TAG;
+
+		tokeniser->context.pending += len;
+
+		tokeniser->state = STATE_TAG_NAME;
+	} else if ('a' <= c && c <= 'z') {
+		START_BUF(tokeniser->context.current_tag.name,
+				cptr, len);
+		tokeniser->context.current_tag.n_attributes = 0;
+
+		tokeniser->context.current_tag_type =
+				HUBBUB_TOKEN_END_TAG;
+
+		tokeniser->context.pending += len;
+
+		tokeniser->state = STATE_TAG_NAME;
+	} else if(tokeniser->content_model == HUBBUB_CONTENT_MODEL_RCDATA ||
+			tokeniser->content_model == HUBBUB_CONTENT_MODEL_RAWTEXT) {
+		tokeniser->state = STATE_DATA;
+	} else if (c == '>') {
+		/* Cursor still at "</", need to collect ">" */
+		tokeniser->context.pending += len;
+
+		/* Now need to advance past "</>" */
+		parserutils_inputstream_advance(tokeniser->input,
+				tokeniser->context.pending);
+		tokeniser->context.pending = 0;
+
+		/** \todo parse error */
 		tokeniser->state = STATE_DATA;
 	} else {
-		error = parserutils_inputstream_peek(tokeniser->input,
-				tokeniser->context.pending, &cptr, &len);
+		/** \todo parse error */
 
-		if (error == PARSERUTILS_EOF) {
-			/** \todo parse error */
+		/* Cursor still at "</", need to advance past it */
+		parserutils_inputstream_advance(tokeniser->input,
+				tokeniser->context.pending);
+		tokeniser->context.pending = 0;
 
-			/* Return to data state with "</" pending */
-			tokeniser->state = STATE_DATA;
-			return HUBBUB_OK;
-		} else if (error != PARSERUTILS_OK) {
-			return hubbub_error_from_parserutils_error(error);
-		}
-
-		c = *cptr;
-
-		if ('A' <= c && c <= 'Z') {
-			uint8_t lc = (c + 0x20);
-			START_BUF(tokeniser->context.current_tag.name,
-					&lc, len);
-			tokeniser->context.current_tag.n_attributes = 0;
-
-			tokeniser->context.current_tag_type =
-					HUBBUB_TOKEN_END_TAG;
-
-			tokeniser->context.pending += len;
-
-			tokeniser->state = STATE_TAG_NAME;
-		} else if ('a' <= c && c <= 'z') {
-			START_BUF(tokeniser->context.current_tag.name,
-					cptr, len);
-			tokeniser->context.current_tag.n_attributes = 0;
-
-			tokeniser->context.current_tag_type =
-					HUBBUB_TOKEN_END_TAG;
-
-			tokeniser->context.pending += len;
-
-			tokeniser->state = STATE_TAG_NAME;
-		} else if (c == '>') {
-			/* Cursor still at "</", need to collect ">" */
-			tokeniser->context.pending += len;
-
-			/* Now need to advance past "</>" */
-			parserutils_inputstream_advance(tokeniser->input,
-					tokeniser->context.pending);
-			tokeniser->context.pending = 0;
-
-			/** \todo parse error */
-			tokeniser->state = STATE_DATA;
-		} else {
-			/** \todo parse error */
-
-			/* Cursor still at "</", need to advance past it */
-			parserutils_inputstream_advance(tokeniser->input,
-					tokeniser->context.pending);
-			tokeniser->context.pending = 0;
-
-			tokeniser->state = STATE_BOGUS_COMMENT;
-		}
+		tokeniser->state = STATE_BOGUS_COMMENT;
 	}
 
 	return HUBBUB_OK;
@@ -1131,36 +1107,58 @@ hubbub_error hubbub_tokeniser_handle_tag_name(hubbub_tokeniser *tokeniser)
 	if (error != PARSERUTILS_OK) {
 		if (error == PARSERUTILS_EOF) {
 			tokeniser->state = STATE_DATA;
-			parserutils_inputstream_advance(tokeniser->input,
-					tokeniser->context.pending);
-			return HUBBUB_OK;
+			if(tokeniser->content_model == HUBBUB_CONTENT_MODEL_RCDATA ||
+					tokeniser->content_model == HUBBUB_CONTENT_MODEL_RAWTEXT) {
+				return emit_current_chars(tokeniser);
+			} else {
+				parserutils_inputstream_advance(tokeniser->input,
+						tokeniser->context.pending);
+				return HUBBUB_OK;
+			}
 		} else {
 			return hubbub_error_from_parserutils_error(error);
 		}
 	}
 
 	c = *cptr;
-
-	if (c == '\t' || c == '\n' || c == '\f' || c == ' ' || c == '\r') {
-		tokeniser->context.pending += len;
-		tokeniser->state = STATE_BEFORE_ATTRIBUTE_NAME;
-	} else if (c == '>') {
-		tokeniser->context.pending += len;
-		tokeniser->state = STATE_DATA;
-		return emit_current_tag(tokeniser);
-	} else if (c == '\0') {
-		COLLECT(ctag->name, u_fffd, sizeof(u_fffd));
-		tokeniser->context.pending += len;
-	} else if (c == '/') {
-		tokeniser->context.pending += len;
-		tokeniser->state = STATE_SELF_CLOSING_START_TAG;
-	} else if ('A' <= c && c <= 'Z') {
+	if ('A' <= c && c <= 'Z') {
 		uint8_t lc = (c + 0x20);
 		COLLECT(ctag->name, &lc, len);
 		tokeniser->context.pending += len;
-	} else {
-		COLLECT(ctag->name, cptr, len);
+	} else if('a' <=c && c <= 'z') {
+		COLLECT(ctag->name, &c, len);
 		tokeniser->context.pending += len;
+	} else if (tokeniser->context.close_tag_match.match == false &&
+			tokeniser->content_model !=
+					HUBBUB_CONTENT_MODEL_PCDATA) {
+		/* We should emit "</" here, but instead we leave it in the
+		 * buffer so the data state emits it with any characters
+		 * following it */
+		tokeniser->state = STATE_DATA;
+
+		return emit_current_chars(tokeniser);
+	} else {
+		if (c == '\t' || c == '\n' || c == '\f' || c == ' ' || c == '\r') {
+			tokeniser->context.pending += len;
+			tokeniser->state = STATE_BEFORE_ATTRIBUTE_NAME;
+		} else if (c == '>') {
+			tokeniser->context.pending += len;
+			tokeniser->state = STATE_DATA;
+			return emit_current_tag(tokeniser);
+		} else if (c == '\0') {
+			COLLECT(ctag->name, u_fffd, sizeof(u_fffd));
+			tokeniser->context.pending += len;
+		} else if (c == '/') {
+			tokeniser->context.pending += len;
+			tokeniser->state = STATE_SELF_CLOSING_START_TAG;
+		} else if(tokeniser->content_model == HUBBUB_CONTENT_MODEL_RCDATA ||
+			tokeniser->content_model == HUBBUB_CONTENT_MODEL_RAWTEXT) {
+			tokeniser->state = STATE_DATA;
+			return emit_current_chars(tokeniser);
+		} else {
+			COLLECT(ctag->name, cptr, len);
+			tokeniser->context.pending += len;
+		}
 	}
 
 	return HUBBUB_OK;
