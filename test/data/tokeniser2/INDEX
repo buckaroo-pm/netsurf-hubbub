@@ -16,5 +16,5 @@ regression.test		Regression tests
 #domjs.test		NA
 namedEntities.test	html5lib named entities tests
 pendingSpecChanges.test	NA
-#unicodeCharsProblematic.test	NA
+unicodeCharsProblematic.test	html5lib unicode exceptions tests
 #xmlViolation.test		NA
