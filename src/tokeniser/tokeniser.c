@@ -1790,11 +1790,12 @@ hubbub_error hubbub_tokeniser_handle_bogus_comment(hubbub_tokeniser *tokeniser)
 
 		tokeniser->context.pending += len;
 	} else if (c == '\r') {
+		size_t next_len;
 		error = parserutils_inputstream_peek(
 				tokeniser->input,
-				tokeniser->context.pending,
+				tokeniser->context.pending + len,
 				&cptr,
-				&len);
+				&next_len);
 
 		if (error != PARSERUTILS_OK && error != PARSERUTILS_EOF) {
 			return hubbub_error_from_parserutils_error(error);

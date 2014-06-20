@@ -12,14 +12,12 @@
         },
         {
             "description":"NUL in RCDATA and RAWTEXT",
-            "doubleEscaped":true,
             "initialStates":["RCDATA state", "RAWTEXT state"],
-            "input":"\\u0000",
-            "output":["ParseError", ["Character", "\\uFFFD"]]
+            "input":"\u0000",
+            "output":["ParseError", ["Character", "\uFFFD"]]
         },
         {
             "description":"leading U+FEFF must pass through",
-            "doubleEscaped":true,
             "input":"\\uFEFFfoo\\uFEFFbar",
             "output":[["Character", "\\uFEFFfoo\\uFEFFbar"]]
         },
@@ -77,9 +75,8 @@
         },
         {
             "description":"--!NUL in comment ",
-            "doubleEscaped":true,
-            "input":"<!----!\\u0000-->",
-            "output":["ParseError", "ParseError", ["Comment", "--!\\uFFFD"]]
+            "input":"<!----!\u0000-->",
+            "output":["ParseError", "ParseError", ["Comment", "--!\uFFFD"]]
         },
         {
             "description":"space EOF after doctype ",
