@@ -56,3 +56,4 @@ bool hubbub_string_match_ci(const uint8_t *a, size_t a_len,
 
 	return true;
 }
+

@@ -25,10 +25,12 @@ static const struct {
 	element_type type;
 } name_type_map[] = {
 	{ S("address"), ADDRESS },	{ S("area"), AREA },
+	{ S("b"), B },
 	{ S("base"), BASE },		{ S("basefont"), BASEFONT },
 	{ S("bgsound"), BGSOUND },	{ S("blockquote"), BLOCKQUOTE },
 	{ S("body"), BODY },		{ S("br"), BR },
 	{ S("center"), CENTER },	{ S("col"), COL },
+	{ S("code"), CODE },
 	{ S("colgroup"), COLGROUP },	{ S("dd"), DD },
 	{ S("dir"), DIR },		{ S("div"), DIV },
 	{ S("dl"), DL },		{ S("dt"), DT },
@@ -519,13 +521,22 @@ uint32_t element_in_scope(hubbub_treebuilder *treebuilder,
 			break;
 
 		/* The list of element types given in the spec here are the
-		 * scoping elements excluding TABLE and HTML. TABLE is handled
+		 * scoping elements excluding TABLE and HTML and BUTTON. TABLE is handled
 		 * in the previous conditional and HTML should only occur
 		 * as the first node in the stack, which is never processed
 		 * in this loop. */
-		if (!in_table && (is_scoping_element(node_type) ||
-				(node_type == FOREIGNOBJECT &&
-						node_ns == HUBBUB_NS_SVG))) {
+		if (!in_table && node_type != BUTTON &&
+				(is_scoping_element(node_type) ||
+				(node_ns == HUBBUB_NS_SVG && (
+							      node_type == FOREIGNOBJECT ||
+							      node_type == DESC ||
+							      node_type == TITLE)) ||
+				(node_ns ==HUBBUB_NS_MATHML && (
+								node_type == MI ||
+								node_type == MO ||
+								node_type == MN ||
+								node_type == MS ||
+								node_type == MTEXT)))) {
 			break;
 		}
 	}
@@ -1389,7 +1400,6 @@ hubbub_error formatting_list_remove(hubbub_treebuilder *treebuilder,
 	*type = entry->details.type;
 	*node = entry->details.node;
 	*stack_index = entry->stack_index;
-
 	if (entry->prev == NULL)
 		treebuilder->context.formatting_list = entry->next;
 	else

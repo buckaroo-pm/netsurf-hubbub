@@ -225,7 +225,8 @@ hubbub_error process_character(hubbub_treebuilder *treebuilder,
 	if (treebuilder->context.frameset_ok) {
 		for (p = dummy.ptr; p < dummy.ptr + dummy.len; p++) {
 			if (*p != 0x0009 && *p != 0x000a &&
-					*p != 0x000c && *p != 0x0020) {
+					*p != 0x000c && *p != 0x0020 &&
+					*p != 0x000d) {
 				treebuilder->context.frameset_ok = false;
 				break;
 			}
@@ -324,7 +325,7 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 	} else if (type == AREA || type == BASEFONT || 
 			type == BGSOUND || type == BR || 
 			type == EMBED || type == IMG || type == INPUT ||
-			type == PARAM || type == SPACER || type == WBR) {
+			type == PARAM || type == WBR) {
 		err = reconstruct_active_formatting_list(treebuilder);
 		if (err != HUBBUB_OK)
 			return err;
@@ -997,36 +998,6 @@ hubbub_error process_button_in_body(hubbub_treebuilder *treebuilder,
 	if (err != HUBBUB_OK)
 		return err;
 
-	treebuilder->tree_handler->ref_node(
-		treebuilder->tree_handler->ctx,
-		treebuilder->context.element_stack[
-		treebuilder->context.current_node].node);
-
-	err = formatting_list_append(treebuilder, token->data.tag.ns, BUTTON, 
-		treebuilder->context.element_stack[
-		treebuilder->context.current_node].node,
-		treebuilder->context.current_node);
-	if (err != HUBBUB_OK) {
-		hubbub_ns ns;
-		element_type type;
-		void *node;
-
-		remove_node_from_dom(treebuilder, 
-				treebuilder->context.element_stack[
-				treebuilder->context.current_node].node);
-
-		element_stack_pop(treebuilder, &ns, &type, &node);
-
-		/* Unref twice (once for stack, once for formatting list) */
-		treebuilder->tree_handler->unref_node(
-				treebuilder->tree_handler->ctx, node);
-
-		treebuilder->tree_handler->unref_node(
-				treebuilder->tree_handler->ctx, node);
-
-		return err;
-	}
-
 	treebuilder->context.frameset_ok = false;
 
 	return HUBBUB_OK;
@@ -1668,11 +1639,11 @@ hubbub_error process_0presentational_in_body(hubbub_treebuilder *treebuilder,
 	hubbub_error err;
 
 	/* Welcome to the adoption agency */
-
-	while (true) {
+	uint32_t counter = 0;
+	while (counter++ < 8) {
 		element_context *stack = treebuilder->context.element_stack;
 
-		formatting_list_entry *entry;
+		formatting_list_entry *entry = NULL;
 		uint32_t formatting_element;
 		uint32_t common_ancestor;
 		uint32_t furthest_block;
@@ -1843,6 +1814,7 @@ hubbub_error process_0presentational_in_body(hubbub_treebuilder *treebuilder,
 
 		/* 13 */
 	}
+	return HUBBUB_OK;
 }
 
 /**
@@ -1861,10 +1833,13 @@ hubbub_error aa_find_and_validate_formatting_element(
 	formatting_list_entry *entry;
 
 	entry = aa_find_formatting_element(treebuilder, type);
+	if (entry == NULL) {
+		return process_0generic_in_body(treebuilder, type);
+	}
 
-	if (entry == NULL || (entry->stack_index != 0 &&
+	if (entry->stack_index != 0 &&
 			element_in_scope(treebuilder, entry->details.type,
-					false) != entry->stack_index)) {
+					false) != entry->stack_index) {
 		/** \todo parse error */
 		return HUBBUB_OK;
 	}
@@ -2002,7 +1977,7 @@ hubbub_error aa_reparent_node(hubbub_treebuilder *treebuilder, void *node,
 }
 
 /**
- * Adoption agency: this is step 6
+ * Adoption agency: this is step 13
  *
  * \param treebuilder         The treebuilder instance
  * \param formatting_element  The stack index of the formatting element
@@ -2018,7 +1993,7 @@ hubbub_error aa_find_bookmark_location_reparenting_misnested(
 {
 	hubbub_error err;
 	element_context *stack = treebuilder->context.element_stack;
-	uint32_t node, last, fb;
+	uint32_t node, last, fb, counter = 0;
 	formatting_list_entry *node_entry;
 
 	node = last = fb = *furthest_block;
@@ -2026,6 +2001,7 @@ hubbub_error aa_find_bookmark_location_reparenting_misnested(
 	while (true) {
 		void *reparented;
 
+		counter += 1;
 		/* i */
 		node--;
 
@@ -2035,6 +2011,25 @@ hubbub_error aa_find_bookmark_location_reparenting_misnested(
 				node_entry = node_entry->prev) {
 			if (node_entry->stack_index == node)
 				break;
+		}
+
+		/* iii */
+		if (node == formatting_element)
+			break;
+
+		if(node_entry != NULL && counter > 3) {
+			hubbub_ns ons;
+			element_type otype;
+			void *onode;
+			uint32_t oindex;
+
+			err = formatting_list_remove(treebuilder, node_entry,
+					&ons, &otype, &onode, &oindex);
+			assert(err == HUBBUB_OK);
+			treebuilder->tree_handler->unref_node(
+					treebuilder->tree_handler->ctx, onode);
+			node_entry = NULL;
+
 		}
 
 		/* Node is not in list of active formatting elements */
@@ -2055,9 +2050,6 @@ hubbub_error aa_find_bookmark_location_reparenting_misnested(
 			continue;
 		}
 
-		/* iii */
-		if (node == formatting_element)
-			break;
 
 		/* iv */
 		if (last == fb) {
@@ -2375,7 +2367,7 @@ hubbub_error process_0generic_in_body(hubbub_treebuilder *treebuilder,
 			uint32_t popped = 0;
 			element_type otype;
 
-			close_implied_end_tags(treebuilder, UNKNOWN);
+			close_implied_end_tags(treebuilder, type);
 
 			while (treebuilder->context.current_node >= node) {
 				hubbub_ns ns;

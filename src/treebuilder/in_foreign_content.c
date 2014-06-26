@@ -40,8 +40,6 @@ static const case_changes svg_attributes[] = {
 	{ S("contentstyletype"),	"contentStyleType" },
 	{ S("diffuseconstant"),		"diffuseConstant" },
 	{ S("edgemode"),		"edgeMode" },
-	{ S("externalresourcesrequired"),	"externalResourcesRequired" },
-	{ S("filterres"),		"filterRes" },
 	{ S("filterunits"),		"filterUnits" },
 	{ S("glyphref"),		"glyphRef" },
 	{ S("gradienttransform"),	"gradientTransform" },
@@ -110,6 +108,7 @@ static const case_changes svg_tagnames[] = {
 	{ S("fediffuselighting"),	"feDiffuseLighting" },
 	{ S("fedisplacementmap"),	"feDisplacementMap" },
 	{ S("fedistantlight"),		"feDistantLight" },
+	{ S("fedropshadow"),		"feDropShadow"},
 	{ S("feflood"),			"feFlood" },
 	{ S("fefunca"),			"feFuncA" },
 	{ S("fefuncb"),			"feFuncB" },
@@ -391,9 +390,15 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token)
 {
 	hubbub_error err = HUBBUB_OK;
+	const uint8_t *c;
 
 	switch (token->type) {
 	case HUBBUB_TOKEN_CHARACTER:
+		c = (token->data.character.ptr);
+		if(*c != '\t' && *c != '\r' && *c != ' ' && *c != '\n' && *c != '\f') {
+			treebuilder->context.frameset_ok = false;
+		}
+
 		err = append_text(treebuilder, &token->data.character);
 		break;
 	case HUBBUB_TOKEN_COMMENT:
@@ -472,12 +477,14 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 		} else {
 			hubbub_tag tag = token->data.tag;
 
-			adjust_foreign_attributes(treebuilder, &tag);
-
 			if (cur_node_ns == HUBBUB_NS_SVG) {
 				adjust_svg_tagname(treebuilder, &tag);
 				adjust_svg_attributes(treebuilder, &tag);
+			} else if(cur_node_ns == HUBBUB_NS_MATHML) {
+				adjust_mathml_attributes(treebuilder, &tag);
 			}
+
+			adjust_foreign_attributes(treebuilder, &tag);
 
 			/* Set to the right namespace and insert */
 			tag.ns = cur_node_ns;
@@ -492,8 +499,29 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 	}
 		break;
 	case HUBBUB_TOKEN_END_TAG:
+	{
+		element_type type = element_type_from_name(treebuilder,
+				&token->data.tag.name);
+		uint32_t node;
+		element_context *stack = treebuilder->context.element_stack;
+
+		for (node = treebuilder->context.current_node; node > 0; node--) {
+			if(stack[node].type == type) {
+				hubbub_ns ns;
+				element_type type;
+				void *node_iterator;
+				while(node_iterator !=stack[node].node) {
+					element_stack_pop(treebuilder, &ns, &type, &node_iterator);
+					treebuilder->tree_handler->unref_node(
+							treebuilder->tree_handler->ctx,
+							node_iterator);
+				}
+				return HUBBUB_OK;
+			}
+		}
 		err = process_as_in_secondary(treebuilder, token);
-		break;
+	}
+	break;
 	case HUBBUB_TOKEN_EOF:
 		foreign_break_out(treebuilder);
 		err = HUBBUB_REPROCESS;
