@@ -137,7 +137,7 @@ hubbub_error parse_generic_rcdata(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token, bool rcdata);
 
 uint32_t element_in_scope(hubbub_treebuilder *treebuilder,
-		element_type type, bool in_table);
+		element_type type, bool in_table, bool in_button);
 hubbub_error reconstruct_active_formatting_list(
 		hubbub_treebuilder *treebuilder);
 void clear_active_formatting_list_to_marker(

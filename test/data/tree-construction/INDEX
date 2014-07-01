@@ -2,8 +2,8 @@
 #
 # Test			Description
 
-#adoption01.dat		NA
-#adoption02.dat		NA
+adoption01.dat		html5lib tests for the adoption agency algorithm
+adoption02.dat		html5lib tests for the adoption agency algorithm
 #after-after-body.dat	NA
 #after-after-frameset.dat	NA
 #after-body.dat		NA

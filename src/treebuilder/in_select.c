@@ -86,7 +86,7 @@ hubbub_error handle_in_select(hubbub_treebuilder *treebuilder,
 		} else if (type == SELECT || type == INPUT ||
 				type == TEXTAREA) {
 
-			if (element_in_scope(treebuilder, SELECT, true)) {
+			if (element_in_scope(treebuilder, SELECT, true, false)) {
 				element_stack_pop_until(treebuilder, 
 						SELECT);
 				reset_insertion_mode(treebuilder);
@@ -142,7 +142,7 @@ hubbub_error handle_in_select(hubbub_treebuilder *treebuilder,
 				/** \todo parse error */
 			}
 		} else if (type == SELECT) {
-			if (element_in_scope(treebuilder, SELECT, true)) {
+			if (element_in_scope(treebuilder, SELECT, true, false)) {
 				element_stack_pop_until(treebuilder, 
 						SELECT);
 				reset_insertion_mode(treebuilder);

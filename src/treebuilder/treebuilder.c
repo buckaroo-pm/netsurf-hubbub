@@ -496,10 +496,11 @@ hubbub_error parse_generic_rcdata(hubbub_treebuilder *treebuilder,
  * \param treebuilder  Treebuilder to look in
  * \param type         Element type to find
  * \param in_table     Whether we're looking in table scope
+ * \param in_button	Whether we're looking in button scope
  * \return Element stack index, or 0 if not in scope
  */
 uint32_t element_in_scope(hubbub_treebuilder *treebuilder,
-		element_type type, bool in_table)
+		element_type type, bool in_table, bool in_button)
 {
 	uint32_t node;
 
@@ -525,7 +526,8 @@ uint32_t element_in_scope(hubbub_treebuilder *treebuilder,
 		 * in the previous conditional and HTML should only occur
 		 * as the first node in the stack, which is never processed
 		 * in this loop. */
-		if (!in_table && node_type != BUTTON &&
+		if (!in_table && (node_type != BUTTON || (
+						in_button && node_type == BUTTON)) &&
 				(is_scoping_element(node_type) ||
 				(node_ns == HUBBUB_NS_SVG && (
 							      node_type == FOREIGNOBJECT ||
@@ -1304,6 +1306,33 @@ hubbub_error formatting_list_append(hubbub_treebuilder *treebuilder,
 		uint32_t stack_index)
 {
 	formatting_list_entry *entry;
+	uint32_t n_elements = 0;
+	formatting_list_entry *remove_entry;
+	for (entry = treebuilder->context.formatting_list_end;
+			entry != NULL; entry = entry->prev) {
+		/* Assumption: HTML and TABLE elements are not in the list */
+		if (is_scoping_element(entry->details.type))
+			break;
+
+		if(entry->details.type == type &&
+				entry->details.ns == ns)
+		{
+			remove_entry = entry;
+			n_elements += 1;
+		}
+	}
+	if(n_elements == 3) {
+		hubbub_ns ons;
+		element_type otype;
+		void *onode;
+		uint32_t oindex;
+
+		formatting_list_remove(treebuilder, remove_entry,
+				&ons, &otype, &onode, &oindex);
+
+		treebuilder->tree_handler->unref_node(
+				treebuilder->tree_handler->ctx, onode);
+	}
 
 	entry = malloc(sizeof(formatting_list_entry));
 	if (entry == NULL)
