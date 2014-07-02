@@ -50,9 +50,9 @@ static void table_clear_stack(hubbub_treebuilder *treebuilder)
  */
 static hubbub_error table_sub_start_or_table_end(hubbub_treebuilder *treebuilder)
 {
-	if (element_in_scope(treebuilder, TBODY, true, false) ||
-			element_in_scope(treebuilder, THEAD, true, false) ||
-			element_in_scope(treebuilder, TFOOT, true, false)) {
+	if (element_in_scope(treebuilder, TBODY, TABLE_SCOPE) ||
+			element_in_scope(treebuilder, THEAD, TABLE_SCOPE) ||
+			element_in_scope(treebuilder, TFOOT, TABLE_SCOPE)) {
 		hubbub_ns ns;
 		element_type otype;
 		void *node;
@@ -140,7 +140,7 @@ hubbub_error handle_in_table_body(hubbub_treebuilder *treebuilder,
 				&token->data.tag.name);
 
 		if (type == TBODY || type == TFOOT || type == THEAD) {
-			if (!element_in_scope(treebuilder, type, true, false)) {
+			if (!element_in_scope(treebuilder, type, TABLE_SCOPE)) {
 				/** \todo parse error */
 				/* Ignore the token */
 			} else {

@@ -36,6 +36,11 @@ typedef enum
 	UNKNOWN
 } element_type;
 
+typedef enum
+{
+	NONE, LIST_ITEM_SCOPE, BUTTON_SCOPE, TABLE_SCOPE, SELECT_SCOPE
+} element_scope;
+
 /**
  * Item on the element stack
  */
@@ -137,7 +142,7 @@ hubbub_error parse_generic_rcdata(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token, bool rcdata);
 
 uint32_t element_in_scope(hubbub_treebuilder *treebuilder,
-		element_type type, bool in_table, bool in_button);
+		element_type type, element_scope scope);
 hubbub_error reconstruct_active_formatting_list(
 		hubbub_treebuilder *treebuilder);
 void clear_active_formatting_list_to_marker(

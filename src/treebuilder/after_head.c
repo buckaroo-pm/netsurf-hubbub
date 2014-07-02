@@ -26,7 +26,6 @@ hubbub_error handle_after_head(hubbub_treebuilder *treebuilder,
 {
 	hubbub_error err = HUBBUB_OK;
 	bool handled = false;
-
 	switch (token->type) {
 	case HUBBUB_TOKEN_CHARACTER:
 		err = process_characters_expect_whitespace(treebuilder,

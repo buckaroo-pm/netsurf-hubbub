@@ -495,12 +495,11 @@ hubbub_error parse_generic_rcdata(hubbub_treebuilder *treebuilder,
  *
  * \param treebuilder  Treebuilder to look in
  * \param type         Element type to find
- * \param in_table     Whether we're looking in table scope
- * \param in_button	Whether we're looking in button scope
+ * \param scope		The scope we're looking in
  * \return Element stack index, or 0 if not in scope
  */
 uint32_t element_in_scope(hubbub_treebuilder *treebuilder,
-		element_type type, bool in_table, bool in_button)
+		element_type type, element_scope scope)
 {
 	uint32_t node;
 
@@ -518,17 +517,28 @@ uint32_t element_in_scope(hubbub_treebuilder *treebuilder,
 		if (node_type == type)
 			return node;
 
-		if (node_type == TABLE)
+		if (scope == TABLE_SCOPE && (
+				node_type == TABLE ||
+				node_type == HTML ||
+				node_type == TEMPLATE))
 			break;
 
-		/* The list of element types given in the spec here are the
-		 * scoping elements excluding TABLE and HTML and BUTTON. TABLE is handled
-		 * in the previous conditional and HTML should only occur
+		if (scope == SELECT_SCOPE &&
+					node_type != OPTGROUP &&
+					node_type != OPTION)
+			break;
+
+		/* The list of element types of the normal scope given in the spec here are the
+		 * scoping elements excluding HTML and BUTTON. HTML should only occur
 		 * as the first node in the stack, which is never processed
 		 * in this loop. */
-		if (!in_table && (node_type != BUTTON || (
-						in_button && node_type == BUTTON)) &&
-				(is_scoping_element(node_type) ||
+		if (scope != TABLE_SCOPE && scope != SELECT_SCOPE &&
+				((scope == BUTTON_SCOPE &&
+						node_type == BUTTON) ||
+				(scope == LIST_ITEM_SCOPE &&
+				 (node_type == OL ||
+				  node_type == UL)) ||
+				(node_type != BUTTON && is_scoping_element(node_type)) ||
 				(node_ns == HUBBUB_NS_SVG && (
 							      node_type == FOREIGNOBJECT ||
 							      node_type == DESC ||

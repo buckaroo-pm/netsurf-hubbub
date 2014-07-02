@@ -41,7 +41,7 @@ hubbub_error handle_in_select_in_table(hubbub_treebuilder *treebuilder,
 
 			if ((token->type == HUBBUB_TOKEN_END_TAG &&
 					element_in_scope(treebuilder, type,
-							true, false)) ||
+							TABLE_SCOPE)) ||
 					token->type == HUBBUB_TOKEN_START_TAG) {
 				/** \todo fragment case */
 
