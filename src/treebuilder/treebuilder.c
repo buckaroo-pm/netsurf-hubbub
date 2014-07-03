@@ -476,7 +476,7 @@ hubbub_error parse_generic_rcdata(hubbub_treebuilder *treebuilder,
 		return error;
 
 	params.content_model.model = rcdata ? HUBBUB_CONTENT_MODEL_RCDATA
-					    : HUBBUB_CONTENT_MODEL_CDATA;
+					    : HUBBUB_CONTENT_MODEL_RAWTEXT;
 	error = hubbub_tokeniser_setopt(treebuilder->tokeniser,
 				HUBBUB_TOKENISER_CONTENT_MODEL, &params);
 	/* There is no way that setopt can fail. Ensure this. */

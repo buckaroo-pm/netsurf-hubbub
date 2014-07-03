@@ -307,6 +307,11 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 		err = process_applet_marquee_object_in_body(treebuilder,
 				token, type);
 	} else if (type == XMP) {
+		if(element_in_scope(treebuilder, P, BUTTON_SCOPE)) {
+			err = close_p_in_body(treebuilder);
+			if(err != HUBBUB_OK)
+				return err;
+		}
 		err = reconstruct_active_formatting_list(treebuilder);
 		if (err != HUBBUB_OK)
 			return err;
