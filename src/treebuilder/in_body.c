@@ -331,7 +331,7 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 	} else if (type == AREA || type == BASEFONT || 
 			type == BGSOUND || type == BR || 
 			type == EMBED || type == IMG || type == INPUT ||
-			type == PARAM || type == WBR) {
+			type == WBR) {
 		err = reconstruct_active_formatting_list(treebuilder);
 		if (err != HUBBUB_OK)
 			return err;
@@ -406,6 +406,9 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 			type == TD || type == TFOOT || type == TH ||
 			type == THEAD || type == TR) {
 		/** \todo parse error */
+	} else if (type == PARAM) {
+		err = insert_element(treebuilder, &token->data.tag, false);
+		/** \todo ack sc flag */
 	} else {
 		err = process_phrasing_in_body(treebuilder, token);
 	}
