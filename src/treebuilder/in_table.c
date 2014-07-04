@@ -51,13 +51,17 @@ static inline hubbub_error process_input_in_table(
 	for (i = 0; i < token->data.tag.n_attributes; i++) {
 		hubbub_attribute *attr = &token->data.tag.attributes[i];
 
-		if (!hubbub_string_match_ci(attr->value.ptr, attr->value.len,
-				(uint8_t *) "hidden", SLEN("hidden"))) {
+		if (!(hubbub_string_match_ci(attr->name.ptr, attr->name.len,
+						(uint8_t *) "type", SLEN("type")) &&
+						hubbub_string_match_ci(attr->value.ptr, attr->value.len,
+				(uint8_t *) "hidden", SLEN("hidden")))) {
 			continue;
 		}
 
 		/** \todo parse error */
-		err = insert_element(treebuilder, &token->data.tag, true);
+		err = insert_element(treebuilder, &token->data.tag, false);
+		break;
+		/** \todo ack sc */
 	}
 
 	return err;
@@ -192,7 +196,10 @@ hubbub_error handle_in_table(hubbub_treebuilder *treebuilder,
 			treebuilder->context.mode = IN_TABLE_BODY;
 		} else if (type == TABLE) {
 			/** \todo parse error */
-
+			if(!element_in_scope(treebuilder, TABLE, TABLE_SCOPE)) {
+				/** \todo parse error */
+				break;
+			}
 			/* This should match "</table>" handling */
 			element_stack_pop_until(treebuilder, TABLE);
 

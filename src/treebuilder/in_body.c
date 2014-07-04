@@ -12,6 +12,7 @@
 #include "treebuilder/internal.h"
 #include "treebuilder/treebuilder.h"
 #include "utils/utils.h"
+#include "utils/string.h"
 
 #undef DEBUG_IN_BODY
 
@@ -337,8 +338,27 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 			return err;
 
 		err = insert_element(treebuilder, &token->data.tag, false);
-		if (err == HUBBUB_OK)
+		if (err != HUBBUB_OK)
+			return err;
+
+		size_t i;
+		bool found = 0;
+
+		for (i = 0; i < token->data.tag.n_attributes; i++) {
+			hubbub_attribute *attr = &token->data.tag.attributes[i];
+
+			if (hubbub_string_match_ci(attr->name.ptr, attr->name.len,
+						(uint8_t *) "type", SLEN("type")) &&
+					hubbub_string_match_ci(attr->value.ptr, attr->value.len,
+						(uint8_t *) "hidden", SLEN("hidden"))) {
+				found = 1;
+				break;
+			}
+		}
+
+		if(!found) {
 			treebuilder->context.frameset_ok = false;
+		}
 	} else if (type == HR) {
 		err = process_hr_in_body(treebuilder, token);
 	} else if (type == IMAGE) {
