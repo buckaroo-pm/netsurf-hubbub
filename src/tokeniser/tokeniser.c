@@ -16,10 +16,13 @@
 
 #include "utils/parserutilserror.h"
 #include "utils/utils.h"
+#include "utils/string.h"
 
 #include "hubbub/errors.h"
 #include "tokeniser/entities.h"
 #include "tokeniser/tokeniser.h"
+
+#define S(s)    (uint8_t *) s, sizeof s - 1
 
 /**
  * Table of mappings between Windows-1252 codepoints 128-159 and UCS4
@@ -98,7 +101,26 @@ typedef enum hubbub_tokeniser_state {
 	STATE_MATCH_CDATA,
 	STATE_CDATA_BLOCK,
 	STATE_NUMBERED_ENTITY,
-	STATE_NAMED_ENTITY
+	STATE_NAMED_ENTITY,
+	STATE_SCRIPT_DATA,
+	STATE_SCRIPT_DATA_LESS_THAN,
+	STATE_SCRIPT_DATA_END_TAG_OPEN,
+	STATE_SCRIPT_DATA_END_TAG_NAME,
+	STATE_SCRIPT_DATA_ESCAPE_START,
+	STATE_SCRIPT_DATA_ESCAPE_START_DASH,
+	STATE_SCRIPT_DATA_ESCAPED,
+	STATE_SCRIPT_DATA_ESCAPED_DASH,
+	STATE_SCRIPT_DATA_ESCAPED_DASH_DASH,
+	STATE_SCRIPT_DATA_ESCAPED_LESS_THAN,
+	STATE_SCRIPT_DATA_ESCAPED_END_TAG_OPEN,
+	STATE_SCRIPT_DATA_ESCAPED_END_TAG_NAME,
+	STATE_SCRIPT_DATA_DOUBLE_ESCAPE_START,
+	STATE_SCRIPT_DATA_DOUBLE_ESCAPED,
+	STATE_SCRIPT_DATA_DOUBLE_ESCAPED_DASH,
+	STATE_SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH,
+	STATE_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN,
+	STATE_SCRIPT_DATA_DOUBLE_ESCAPE_END
+
 } hubbub_tokeniser_state;
 
 /**
@@ -205,6 +227,14 @@ static hubbub_error hubbub_tokeniser_handle_tag_open(
 static hubbub_error hubbub_tokeniser_handle_close_tag_open(
 		hubbub_tokeniser *tokeniser);
 static hubbub_error hubbub_tokeniser_handle_tag_name(
+		hubbub_tokeniser *tokeniser);
+static hubbub_error hubbub_tokeniser_handle_script_data_escape_start(
+		hubbub_tokeniser *tokeniser);
+static hubbub_error hubbub_tokeniser_handle_script_data_escaped_dash(
+		hubbub_tokeniser *tokeniser);
+static hubbub_error hubbub_tokeniser_handle_script_data_escaped_less_than(
+		hubbub_tokeniser *tokeniser);
+static hubbub_error hubbub_tokeniser_handle_script_data_double_escape_start(
 		hubbub_tokeniser *tokeniser);
 static hubbub_error hubbub_tokeniser_handle_before_attribute_name(
 		hubbub_tokeniser *tokeniser);
@@ -469,6 +499,9 @@ hubbub_error hubbub_tokeniser_run(hubbub_tokeniser *tokeniser)
 	while (cont == HUBBUB_OK) {
 		switch (tokeniser->state) {
 		state(STATE_DATA)
+		state(STATE_SCRIPT_DATA)
+		state(STATE_SCRIPT_DATA_ESCAPED)
+		state(STATE_SCRIPT_DATA_DOUBLE_ESCAPED)
 			cont = hubbub_tokeniser_handle_data(tokeniser);
 			break;
 		state(STATE_CHARACTER_REFERENCE_DATA)
@@ -476,14 +509,41 @@ hubbub_error hubbub_tokeniser_run(hubbub_tokeniser *tokeniser)
 					tokeniser);
 			break;
 		state(STATE_TAG_OPEN)
+		state(STATE_SCRIPT_DATA_LESS_THAN)
 			cont = hubbub_tokeniser_handle_tag_open(tokeniser);
 			break;
 		state(STATE_CLOSE_TAG_OPEN)
+		state(STATE_SCRIPT_DATA_END_TAG_OPEN)
+		state(STATE_SCRIPT_DATA_ESCAPED_END_TAG_OPEN)
 			cont = hubbub_tokeniser_handle_close_tag_open(
 					tokeniser);
 			break;
 		state(STATE_TAG_NAME)
+		state(STATE_SCRIPT_DATA_END_TAG_NAME)
+		state(STATE_SCRIPT_DATA_ESCAPED_END_TAG_NAME)
 			cont = hubbub_tokeniser_handle_tag_name(tokeniser);
+			break;
+		state(STATE_SCRIPT_DATA_ESCAPE_START)
+		state(STATE_SCRIPT_DATA_ESCAPE_START_DASH)
+			cont = hubbub_tokeniser_handle_script_data_escape_start(
+					tokeniser);
+			break;
+		state(STATE_SCRIPT_DATA_ESCAPED_DASH)
+		state(STATE_SCRIPT_DATA_ESCAPED_DASH_DASH)
+		state(STATE_SCRIPT_DATA_DOUBLE_ESCAPED_DASH)
+		state(STATE_SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH)
+			cont = hubbub_tokeniser_handle_script_data_escaped_dash(
+					tokeniser);
+			break;
+		state(STATE_SCRIPT_DATA_ESCAPED_LESS_THAN)
+		state(STATE_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN)
+			cont = hubbub_tokeniser_handle_script_data_escaped_less_than(
+					tokeniser);
+			break;
+		state(STATE_SCRIPT_DATA_DOUBLE_ESCAPE_START)
+		state(STATE_SCRIPT_DATA_DOUBLE_ESCAPE_END)
+			cont = hubbub_tokeniser_handle_script_data_double_escape_start(
+					tokeniser);
 			break;
 		state(STATE_BEFORE_ATTRIBUTE_NAME)
 			cont = hubbub_tokeniser_handle_before_attribute_name(
@@ -625,6 +685,7 @@ hubbub_error hubbub_tokeniser_run(hubbub_tokeniser *tokeniser)
 			cont = hubbub_tokeniser_handle_named_entity(
 					tokeniser);
 			break;
+
 		}
 	}
 
@@ -687,7 +748,11 @@ hubbub_error hubbub_tokeniser_handle_data(hubbub_tokeniser *tokeniser)
 		if (c == '&' &&
 				(tokeniser->content_model == HUBBUB_CONTENT_MODEL_PCDATA ||
 				tokeniser->content_model == HUBBUB_CONTENT_MODEL_RCDATA) &&
-				tokeniser->escape_flag == false) {
+				tokeniser->escape_flag == false &&
+				tokeniser->state != STATE_SCRIPT_DATA &&
+				tokeniser->state != STATE_SCRIPT_DATA_ESCAPED &&
+				tokeniser->state != STATE_SCRIPT_DATA_DOUBLE_ESCAPED
+				) {
 			tokeniser->state =
 					STATE_CHARACTER_REFERENCE_DATA;
 			/* Don't eat the '&'; it'll be handled by entity
@@ -709,7 +774,15 @@ hubbub_error hubbub_tokeniser_handle_data(hubbub_tokeniser *tokeniser)
 
 			/* Buffer '<' */
 			tokeniser->context.pending = len;
-			tokeniser->state = STATE_TAG_OPEN;
+			if(tokeniser->state == STATE_SCRIPT_DATA) {
+				tokeniser->state = STATE_SCRIPT_DATA_LESS_THAN;
+			} else if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED) {
+				tokeniser->state = STATE_SCRIPT_DATA_ESCAPED_LESS_THAN;
+			} else if(tokeniser->state == STATE_SCRIPT_DATA_DOUBLE_ESCAPED) {
+				tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN;
+			} else {
+				tokeniser->state = STATE_TAG_OPEN;
+			}
 			break;
 		} else if (c == '>' && tokeniser->escape_flag == true &&
 				(tokeniser->content_model ==
@@ -745,7 +818,10 @@ hubbub_error hubbub_tokeniser_handle_data(hubbub_tokeniser *tokeniser)
 			} else {
 				emit_character_token(tokeniser, &u_null_str);
 			}
-
+			if(tokeniser->state == STATE_SCRIPT_DATA_DOUBLE_ESCAPED ||
+					tokeniser->state == STATE_SCRIPT_DATA_ESCAPED) {
+				tokeniser->state = STATE_DATA;
+			}
 			/* Advance past NUL */
 			parserutils_inputstream_advance(tokeniser->input, 1);
 		} else if (c == '\r' && tokeniser->content_model != HUBBUB_CONTENT_MODEL_PLAINTEXT) {
@@ -772,6 +848,13 @@ hubbub_error hubbub_tokeniser_handle_data(hubbub_tokeniser *tokeniser)
 
 			/* Advance over */
 			parserutils_inputstream_advance(tokeniser->input, 1);
+		} else if(c == '-') {
+			if(tokeniser->state == STATE_SCRIPT_DATA_DOUBLE_ESCAPED) {
+				tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPED_DASH;
+			} else if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED) {
+				tokeniser->state = STATE_SCRIPT_DATA_ESCAPED_DASH;
+			}
+			tokeniser->context.pending += len;
 		} else {
 			/* Just collect into buffer */
 			tokeniser->context.pending += len;
@@ -786,6 +869,12 @@ hubbub_error hubbub_tokeniser_handle_data(hubbub_tokeniser *tokeniser)
 	}
 
 	if (error == PARSERUTILS_EOF) {
+		/* there is no need to switch from SCRIPT_DATA or
+		   the SCRIPT_DATA_ESCAPED states to the DATA state because
+		   all the neccessary emitting is being done here itself.
+		   Still, this is being done here to mantain the conformance
+		   to specs */
+		tokeniser->state = STATE_DATA;
 		token.type = HUBBUB_TOKEN_EOF;
 		hubbub_tokeniser_emit_token(tokeniser, &token);
 	}
@@ -873,7 +962,11 @@ hubbub_error hubbub_tokeniser_handle_tag_open(hubbub_tokeniser *tokeniser)
 	if (error != PARSERUTILS_OK) {
 		if (error == PARSERUTILS_EOF) {
 			/* Return to data state with '<' still in "chars" */
-			tokeniser->state = STATE_DATA;
+			if(tokeniser->state == STATE_SCRIPT_DATA_LESS_THAN) {
+				tokeniser->state = STATE_SCRIPT_DATA;
+			} else {
+				tokeniser->state = STATE_DATA;
+			}
 			return HUBBUB_OK;
 		} else {
 			return hubbub_error_from_parserutils_error(error);
@@ -887,8 +980,11 @@ hubbub_error hubbub_tokeniser_handle_tag_open(hubbub_tokeniser *tokeniser)
 
 		tokeniser->context.close_tag_match.match = false;
 		tokeniser->context.close_tag_match.count = 0;
-
-		tokeniser->state = STATE_CLOSE_TAG_OPEN;
+		if(tokeniser->state == STATE_SCRIPT_DATA_LESS_THAN) {
+			tokeniser->state = STATE_SCRIPT_DATA_END_TAG_OPEN;
+		} else {
+			tokeniser->state = STATE_CLOSE_TAG_OPEN;
+		}
 	} else if (tokeniser->content_model == HUBBUB_CONTENT_MODEL_RCDATA ||
 			tokeniser->content_model == HUBBUB_CONTENT_MODEL_RAWTEXT ||
 			tokeniser->content_model ==
@@ -897,11 +993,19 @@ hubbub_error hubbub_tokeniser_handle_tag_open(hubbub_tokeniser *tokeniser)
 		tokeniser->state = STATE_DATA;
 	} else if (tokeniser->content_model == HUBBUB_CONTENT_MODEL_PCDATA) {
 		if (c == '!') {
-			parserutils_inputstream_advance(tokeniser->input,
-					SLEN("<!"));
+			if(tokeniser->state == STATE_SCRIPT_DATA_LESS_THAN) {
+				tokeniser->state = STATE_SCRIPT_DATA_ESCAPE_START;
+				tokeniser->context.pending += len;
+				return emit_current_chars(tokeniser);
+			} else {
+				parserutils_inputstream_advance(tokeniser->input,
+						SLEN("<!"));
 
-			tokeniser->context.pending = 0;
-			tokeniser->state = STATE_MARKUP_DECLARATION_OPEN;
+				tokeniser->context.pending = 0;
+				tokeniser->state = STATE_MARKUP_DECLARATION_OPEN;
+			}
+		} else if(tokeniser->state == STATE_SCRIPT_DATA_LESS_THAN) {
+			tokeniser->state = STATE_SCRIPT_DATA;
 		} else if ('A' <= c && c <= 'Z') {
 			uint8_t lc = (c + 0x20);
 
@@ -1024,9 +1128,16 @@ hubbub_error hubbub_tokeniser_handle_close_tag_open(hubbub_tokeniser *tokeniser)
 			tokeniser->context.pending, &cptr, &len);
 
 	if (error == PARSERUTILS_EOF) {
+
 		/** \todo parse error */
 		/* Return to data state with "</" pending */
-		tokeniser->state = STATE_DATA;
+		if(tokeniser->state == STATE_SCRIPT_DATA_END_TAG_OPEN) {
+			tokeniser->state = STATE_SCRIPT_DATA;
+		} else if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_END_TAG_OPEN) {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+		} else {
+			tokeniser->state = STATE_DATA;
+		}
 		return HUBBUB_OK;
 	} else if (error != PARSERUTILS_OK) {
 		return hubbub_error_from_parserutils_error(error);
@@ -1044,8 +1155,13 @@ hubbub_error hubbub_tokeniser_handle_close_tag_open(hubbub_tokeniser *tokeniser)
 				HUBBUB_TOKEN_END_TAG;
 
 		tokeniser->context.pending += len;
-
-		tokeniser->state = STATE_TAG_NAME;
+		if(tokeniser->state == STATE_SCRIPT_DATA_END_TAG_OPEN) {
+			tokeniser->state = STATE_SCRIPT_DATA_END_TAG_NAME;
+		} else if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_END_TAG_OPEN) {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED_END_TAG_NAME;
+		} else {
+			tokeniser->state = STATE_TAG_NAME;
+		}
 	} else if ('a' <= c && c <= 'z') {
 		START_BUF(tokeniser->context.current_tag.name,
 				cptr, len);
@@ -1056,10 +1172,21 @@ hubbub_error hubbub_tokeniser_handle_close_tag_open(hubbub_tokeniser *tokeniser)
 
 		tokeniser->context.pending += len;
 
-		tokeniser->state = STATE_TAG_NAME;
+		if(tokeniser->state == STATE_SCRIPT_DATA_END_TAG_OPEN) {
+			tokeniser->state = STATE_SCRIPT_DATA_END_TAG_NAME;
+		} else if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_END_TAG_OPEN) {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED_END_TAG_NAME;
+		} else {
+			tokeniser->state = STATE_TAG_NAME;
+		}
 	} else if(tokeniser->content_model == HUBBUB_CONTENT_MODEL_RCDATA ||
 			tokeniser->content_model == HUBBUB_CONTENT_MODEL_RAWTEXT) {
 		tokeniser->state = STATE_DATA;
+
+	} else if(tokeniser->state == STATE_SCRIPT_DATA_END_TAG_OPEN) {
+		tokeniser->state = STATE_SCRIPT_DATA;
+	} else if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_END_TAG_OPEN) {
+		tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
 	} else if (c == '>') {
 		/* Cursor still at "</", need to collect ">" */
 		tokeniser->context.pending += len;
@@ -1110,6 +1237,12 @@ hubbub_error hubbub_tokeniser_handle_tag_name(hubbub_tokeniser *tokeniser)
 			if(tokeniser->content_model == HUBBUB_CONTENT_MODEL_RCDATA ||
 					tokeniser->content_model == HUBBUB_CONTENT_MODEL_RAWTEXT) {
 				return emit_current_chars(tokeniser);
+			} else if(tokeniser->state == STATE_SCRIPT_DATA_END_TAG_NAME) {
+				tokeniser->state = STATE_SCRIPT_DATA;
+				return emit_current_chars(tokeniser);
+			} else if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_END_TAG_NAME) {
+				tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+				return emit_current_chars(tokeniser);
 			} else {
 				parserutils_inputstream_advance(tokeniser->input,
 						tokeniser->context.pending);
@@ -1134,7 +1267,13 @@ hubbub_error hubbub_tokeniser_handle_tag_name(hubbub_tokeniser *tokeniser)
 		/* We should emit "</" here, but instead we leave it in the
 		 * buffer so the data state emits it with any characters
 		 * following it */
-		tokeniser->state = STATE_DATA;
+		if(tokeniser->state == STATE_SCRIPT_DATA_END_TAG_NAME) {
+			tokeniser->state = STATE_SCRIPT_DATA;
+		} else if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_END_TAG_NAME) {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+		} else {
+			tokeniser->state = STATE_DATA;
+		}
 
 		return emit_current_chars(tokeniser);
 	} else {
@@ -1155,12 +1294,250 @@ hubbub_error hubbub_tokeniser_handle_tag_name(hubbub_tokeniser *tokeniser)
 			tokeniser->content_model == HUBBUB_CONTENT_MODEL_RAWTEXT) {
 			tokeniser->state = STATE_DATA;
 			return emit_current_chars(tokeniser);
+		} else if(tokeniser->state == STATE_SCRIPT_DATA_END_TAG_NAME) {
+			tokeniser->state = STATE_SCRIPT_DATA;
+			tokeniser->context.pending += len;
+		} else if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_END_TAG_NAME) {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+			tokeniser->context.pending += len;
 		} else {
 			COLLECT(ctag->name, cptr, len);
 			tokeniser->context.pending += len;
 		}
 	}
 
+	return HUBBUB_OK;
+}
+
+hubbub_error hubbub_tokeniser_handle_script_data_escaped_dash(hubbub_tokeniser *tokeniser)
+{
+	size_t len;
+	const uint8_t *cptr;
+	parserutils_error error;
+	uint8_t c;
+
+	error = parserutils_inputstream_peek(tokeniser->input,
+			tokeniser->context.pending, &cptr, &len);
+
+	if (error != PARSERUTILS_OK) {
+		if (error == PARSERUTILS_EOF) {
+			tokeniser->state = STATE_DATA;
+			return emit_current_chars(tokeniser);
+		} else {
+			return hubbub_error_from_parserutils_error(error);
+		}
+	}
+
+	c = *cptr;
+
+	if(c == '-') {
+		if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_DASH) {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED_DASH_DASH;
+		} else if(tokeniser->state == STATE_SCRIPT_DATA_DOUBLE_ESCAPED_DASH) {
+			tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH;
+		}
+
+		tokeniser->context.pending += len;
+	} else if(c == '<') {
+		if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_DASH ||
+				tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_DASH_DASH) {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED_LESS_THAN;
+		} else {
+			tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN;
+		}
+		tokeniser->context.pending += len;
+	} else if(c == '>' && (tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_DASH_DASH ||
+				tokeniser->state == STATE_SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH)) {
+		tokeniser->state = STATE_SCRIPT_DATA;
+		tokeniser->context.pending += len;
+		return emit_current_chars(tokeniser);
+	} else if(c == '\0') {
+		hubbub_error err = HUBBUB_OK;
+
+		/*emit pending characters before emitting replacement character */
+		if(tokeniser->context.pending > 0)
+			err = emit_current_chars(tokeniser);
+		if(err != HUBBUB_OK)
+			return err;
+
+		tokeniser->context.pending += len;
+
+		parserutils_inputstream_advance(tokeniser->input, len);
+
+		if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_DASH ||
+				tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_DASH_DASH) {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+		} else {
+			tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPED;
+		}
+		return emit_character_token(tokeniser, &u_fffd_str);
+	} else {
+		tokeniser->context.pending += len;
+		if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_DASH ||
+				tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_DASH_DASH) {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+		} else {
+			tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPED;
+		}
+	}
+	return HUBBUB_OK;
+}
+
+hubbub_error hubbub_tokeniser_handle_script_data_escaped_less_than(hubbub_tokeniser *tokeniser)
+{
+	size_t len;
+	const uint8_t *cptr;
+	parserutils_error error;
+	uint8_t c;
+	hubbub_tag *ctag = &tokeniser->context.current_tag;
+
+	error = parserutils_inputstream_peek(tokeniser->input,
+			tokeniser->context.pending, &cptr, &len);
+
+	if(error != PARSERUTILS_OK) {
+		if (error == PARSERUTILS_EOF) {
+			if(tokeniser->state == STATE_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN) {
+				tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+			} else {
+				tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPED;
+			}
+			return emit_current_chars(tokeniser);
+		} else {
+			return hubbub_error_from_parserutils_error(error);
+		}
+	}
+
+	c = *cptr;
+
+	if (c == '/') {
+		tokeniser->context.pending += len;
+		if(tokeniser->state == STATE_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN) {
+			tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPE_END;
+		} else {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED_END_TAG_OPEN;
+		}
+	} else if(tokeniser->state == STATE_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN) {
+		tokeniser->state =
+			STATE_SCRIPT_DATA_DOUBLE_ESCAPED;
+	} else if ('A' <= c && c <= 'Z') {
+		uint8_t lc = (c + 0x20);
+
+		START_BUF(ctag->name, &lc, len);
+		ctag->n_attributes = 0;
+		tokeniser->context.current_tag_type =
+			HUBBUB_TOKEN_START_TAG;
+
+		tokeniser->context.pending += len;
+
+		tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPE_START;
+	} else if ('a' <= c && c <= 'z') {
+		START_BUF(ctag->name, cptr, len);
+		ctag->n_attributes = 0;
+		tokeniser->context.current_tag_type =
+			HUBBUB_TOKEN_START_TAG;
+
+		tokeniser->context.pending += len;
+
+		tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPE_START;
+	} else {
+		tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+	}
+	return HUBBUB_OK;
+}
+
+hubbub_error hubbub_tokeniser_handle_script_data_escape_start(hubbub_tokeniser *tokeniser)
+{
+	size_t len;
+	const uint8_t *cptr;
+	parserutils_error error;
+	uint8_t c;
+
+	error = parserutils_inputstream_peek(tokeniser->input,
+			tokeniser->context.pending, &cptr, &len);
+
+	if (error != PARSERUTILS_OK) {
+		if (error == PARSERUTILS_EOF) {
+			tokeniser->state = STATE_SCRIPT_DATA;
+			return emit_current_chars(tokeniser);
+		} else {
+			return hubbub_error_from_parserutils_error(error);
+		}
+	}
+
+	c = *cptr;
+
+	if (c == '-') {
+		tokeniser->context.pending += len;
+		if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPE_START) {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPE_START_DASH;
+		} else {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED_DASH_DASH;
+		}
+	} else {
+		tokeniser->state = STATE_SCRIPT_DATA;
+	}
+	return HUBBUB_OK;
+}
+hubbub_error hubbub_tokeniser_handle_script_data_double_escape_start(hubbub_tokeniser *tokeniser)
+{
+	size_t len;
+	const uint8_t *cptr;
+	parserutils_error error;
+	uint8_t c;
+	bool end = (tokeniser->state == STATE_SCRIPT_DATA_DOUBLE_ESCAPE_END);
+	hubbub_tag *ctag = &tokeniser->context.current_tag;
+
+	error = parserutils_inputstream_peek(tokeniser->input,
+			tokeniser->context.pending, &cptr, &len);
+
+	if (error != PARSERUTILS_OK) {
+		if (error == PARSERUTILS_EOF) {
+			if(end) {
+				tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPED;
+			} else {
+				tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+			}
+			return emit_current_chars(tokeniser);
+		} else {
+			return hubbub_error_from_parserutils_error(error);
+		}
+	}
+
+	c = *cptr;
+
+	if (c == '\t' || c == '\f' || c == '\r' || c == ' ' || c == '/' ||
+			c == '>') {
+		if(hubbub_string_match_ci(ctag->name.ptr,
+					ctag->name.len,
+					S("script"))) {
+			if(end) {
+				tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+			} else {
+				tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPED;
+			}
+		} else {
+			if(end) {
+				tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPED;
+			} else {
+				tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+			}
+		}
+
+		tokeniser->context.pending += len;
+	} else if ('A' <= c && c <= 'Z') {
+		uint8_t lc = (c + 0x20);
+		COLLECT(ctag->name, &lc, len);
+		tokeniser->context.pending += len;
+	} else if('a' <=c && c <= 'z') {
+		COLLECT(ctag->name, &c, len);
+		tokeniser->context.pending += len;
+	} else {
+		if(end) {
+			tokeniser->state = STATE_SCRIPT_DATA_DOUBLE_ESCAPED;
+		} else {
+			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED;
+		}
+	}
 	return HUBBUB_OK;
 }
 
