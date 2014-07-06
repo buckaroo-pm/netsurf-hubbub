@@ -24,52 +24,64 @@ static const struct {
 	size_t len;
 	element_type type;
 } name_type_map[] = {
-	{ S("address"), ADDRESS },	{ S("area"), AREA },
-	{ S("b"), B },
+	{ S("address"), ADDRESS },
+	{ S("area"), AREA },		{ S("article"), ARTICLE },
+	{ S("aside"), ASIDE },		{ S("b"), B },
 	{ S("base"), BASE },		{ S("basefont"), BASEFONT },
 	{ S("bgsound"), BGSOUND },	{ S("blockquote"), BLOCKQUOTE },
 	{ S("body"), BODY },		{ S("br"), BR },
 	{ S("center"), CENTER },	{ S("col"), COL },
 	{ S("code"), CODE },
 	{ S("colgroup"), COLGROUP },	{ S("dd"), DD },
+	{ S("details"), DETAILS },
 	{ S("dir"), DIR },		{ S("div"), DIV },
 	{ S("dl"), DL },		{ S("dt"), DT },
 	{ S("embed"), EMBED },		{ S("fieldset"), FIELDSET },
+	{ S("figcaption"), FIGCAPTION },{ S("figure"), FIGURE },
+	{ S("footer"), FOOTER },
 	{ S("form"), FORM },		{ S("frame"), FRAME },
 	{ S("frameset"), FRAMESET },	{ S("h1"), H1 },
 	{ S("h2"), H2 },		{ S("h3"), H3 },
 	{ S("h4"), H4 },		{ S("h5"), H5 },
 	{ S("h6"), H6 },		{ S("head"), HEAD },
+	{ S("header"), HEADER },	{ S("hgroup"), HGROUP },
 	{ S("hr"), HR },		{ S("iframe"), IFRAME },
 	{ S("image"), IMAGE },		{ S("img"), IMG },
 	{ S("input"), INPUT },		{ S("isindex"), ISINDEX },
 	{ S("li"), LI },		{ S("link"), LINK },
-	{ S("listing"), LISTING },
-	{ S("menu"), MENU },
-	{ S("meta"), META },		{ S("noembed"), NOEMBED },
+	{ S("listing"), LISTING },	{ S("main"), MAIN },
+	{ S("menu"), MENU },		{ S("menuitem"), MENUITEM },
+	{ S("meta"), META },		{ S("nav"), NAV },
+	{ S("noembed"), NOEMBED },
 	{ S("noframes"), NOFRAMES },	{ S("noscript"), NOSCRIPT },
 	{ S("ol"), OL },		{ S("optgroup"), OPTGROUP },
 	{ S("option"), OPTION },	{ S("output"), OUTPUT },
 	{ S("p"), P },			{ S("param"), PARAM },
 	{ S("plaintext"), PLAINTEXT },	{ S("pre"), PRE },
-	{ S("script"), SCRIPT },	{ S("select"), SELECT },
+	{ S("script"), SCRIPT },	{ S("section"), SECTION },
+	{ S("select"), SELECT },	{ S("source"), SOURCE },
 	{ S("spacer"), SPACER },	{ S("style"), STYLE },
- 	{ S("tbody"), TBODY },		{ S("textarea"), TEXTAREA },
+	{ S("summary"), SUMMARY },	{ S("tbody"), TBODY },
+	{ S("template"), TEMPLATE },	{ S("textarea"), TEXTAREA },
 	{ S("tfoot"), TFOOT },		{ S("thead"), THEAD },
 	{ S("title"), TITLE },		{ S("tr"), TR },
+	{ S("track"), TRACK },
 	{ S("ul"), UL },		{ S("wbr"), WBR },
+	{ S("xmp"), XMP },
 	{ S("applet"), APPLET },	{ S("button"), BUTTON },
 	{ S("caption"), CAPTION },	{ S("html"), HTML },
 	{ S("marquee"), MARQUEE },	{ S("object"), OBJECT },
 	{ S("table"), TABLE },		{ S("td"), TD },
 	{ S("th"), TH },
 	{ S("a"), A },			{ S("b"), B },
-	{ S("big"), BIG },		{ S("em"), EM },
+	{ S("big"), BIG },		{ S("code"), CODE },
+	{ S("em"), EM },
 	{ S("font"), FONT },		{ S("i"), I },
 	{ S("nobr"), NOBR },		{ S("s"), S },
 	{ S("small"), SMALL },		{ S("strike"), STRIKE },
-	{ S("strong"), STRONG },	{ S("tt"), TT },
-	{ S("u"), U },			{ S("xmp"), XMP },
+	{ S("strong"), STRONG },	{ S("span"), SPAN },
+	{ S("tt"), TT },
+	{ S("u"), U },
 
 	{ S("math"), MATH },		{ S("mglyph"), MGLYPH },
 	{ S("malignmark"), MALIGNMARK },
@@ -78,7 +90,7 @@ static const struct {
 	{ S("mtext"), MTEXT },		{ S("annotation-xml"), ANNOTATION_XML },
 
 	{ S("svg"), SVG },		{ S("desc"), DESC },
-	{ S("foreignobject"), FOREIGNOBJECT },
+	{ S("foreignobject"), FOREIGNOBJECT }
 };
 
 static bool is_form_associated(element_type type);
@@ -1037,7 +1049,9 @@ element_type element_type_from_name(hubbub_treebuilder *treebuilder,
  */
 bool is_special_element(element_type type)
 {
-	return (type <= WBR);
+	return (type <= TH) ||
+		(type >= MI && type <= ANNOTATION_XML) ||
+		(type >=FOREIGNOBJECT && type <= DESC);
 }
 
 /**

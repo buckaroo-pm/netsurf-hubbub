@@ -1339,6 +1339,8 @@ hubbub_error hubbub_tokeniser_handle_script_data_escaped_dash(hubbub_tokeniser *
 
 		tokeniser->context.pending += len;
 	} else if(c == '<') {
+		/*emit any pending characters*/
+		emit_current_chars(tokeniser);
 		if(tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_DASH ||
 				tokeniser->state == STATE_SCRIPT_DATA_ESCAPED_DASH_DASH) {
 			tokeniser->state = STATE_SCRIPT_DATA_ESCAPED_LESS_THAN;

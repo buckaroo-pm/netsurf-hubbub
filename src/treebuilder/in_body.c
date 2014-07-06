@@ -1361,12 +1361,21 @@ hubbub_error process_select_in_body(hubbub_treebuilder *treebuilder,
 hubbub_error process_opt_in_body(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token)
 {
-	hubbub_error err; 
+	hubbub_error err;
 
-	if (element_in_scope(treebuilder, OPTION, NONE)) {
-		err = process_0generic_in_body(treebuilder, OPTION);
-		/* Cannot fail */
-		assert(err == HUBBUB_OK);
+	element_context *stack = treebuilder->context.element_stack;
+	uint32_t node = treebuilder->context.current_node;
+	element_type ntype = stack[node].type;
+
+	if(ntype == OPTION) {
+		hubbub_ns ns;
+		void *node;
+		element_type otype;
+		element_stack_pop(treebuilder, &ns, &otype, &node);
+
+		treebuilder->tree_handler->unref_node(
+				treebuilder->tree_handler->ctx,
+				node);
 	}
 	
 	err = reconstruct_active_formatting_list(treebuilder);
@@ -2452,8 +2461,7 @@ hubbub_error process_0generic_in_body(hubbub_treebuilder *treebuilder,
 			}
 
 			break;
-		} else if (!is_formatting_element(stack[node].type) && 
-				!is_phrasing_element(stack[node].type)) {
+		} else if (is_special_element(stack[node].type)) {
 			/** \todo parse error */
 			break;
 		}
