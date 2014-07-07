@@ -653,11 +653,22 @@ hubbub_error process_form_in_body(hubbub_treebuilder *treebuilder,
 {
 	hubbub_error err;
 
-	if (treebuilder->context.form_element != NULL) {
+	element_context *stack = treebuilder->context.element_stack;
+	bool template_in_stack = false;
+	uint32_t n;
+	for (n = treebuilder->context.current_node;
+			n > 0; n--) {
+		if(stack[n].type == TEMPLATE) {
+			template_in_stack = true;
+			break;
+		}
+	}
+	if (treebuilder->context.form_element != NULL &&
+			template_in_stack == false) {
 		/** \todo parse error */
 	} else {
-		if (element_in_scope(treebuilder, P, NONE)) {
-			err = process_0p_in_body(treebuilder);
+		if (element_in_scope(treebuilder, P, BUTTON_SCOPE)) {
+			err = close_p_in_body(treebuilder);
 			if (err != HUBBUB_OK)
 				return err;
 		}
@@ -673,9 +684,11 @@ hubbub_error process_form_in_body(hubbub_treebuilder *treebuilder,
 			treebuilder->context.element_stack[
 			treebuilder->context.current_node].node);
 
-		treebuilder->context.form_element =
-			treebuilder->context.element_stack[
-			treebuilder->context.current_node].node;
+		if(template_in_stack == false) {
+			treebuilder->context.form_element =
+				treebuilder->context.element_stack[
+				treebuilder->context.current_node].node;
+		}
 	}
 
 	return HUBBUB_OK;
@@ -1151,50 +1164,63 @@ hubbub_error process_isindex_in_body(hubbub_treebuilder *treebuilder,
 {
 	hubbub_error err;
 	hubbub_token dummy;
+	element_context *stack = treebuilder->context.element_stack;
 	hubbub_attribute *action = NULL;
 	hubbub_attribute *prompt = NULL;
 	hubbub_attribute *attrs = NULL;
 	size_t n_attrs = 0;
+	uint32_t n;
+	bool template_in_stack = false;
 
-	/** \todo parse error */
+	hubbub_ns ns;
+	void *node;
+	element_type o_type;
 
-	if (treebuilder->context.form_element != NULL)
+	for (n = treebuilder->context.current_node;
+			n > 0; n--) {
+		if(stack[n].type == TEMPLATE) {
+			template_in_stack = true;
+			break;
+		}
+	}
+	if (template_in_stack == false &&
+			treebuilder->context.form_element != NULL)
 		return HUBBUB_OK;
 
 	/* First up, clone the token's attributes */
-	if (token->data.tag.n_attributes > 0) {
-		uint32_t i;
-		attrs = malloc((token->data.tag.n_attributes + 1) *
-						sizeof(hubbub_attribute));
-		if (attrs == NULL)
-			return HUBBUB_NOMEM;
+	attrs = malloc((token->data.tag.n_attributes + 1) *
+			sizeof(hubbub_attribute));
+	if (attrs == NULL)
+		return HUBBUB_NOMEM;
+	uint32_t i;
+	for (i = 0; i < token->data.tag.n_attributes; i++) {
+		hubbub_attribute *attr = &token->data.tag.attributes[i];
+		const uint8_t *name = attr->name.ptr;
 
-		for (i = 0; i < token->data.tag.n_attributes; i++) {
-			hubbub_attribute *attr = &token->data.tag.attributes[i];
-			const uint8_t *name = attr->name.ptr;
-
-			if (strncmp((const char *) name, "action",
+		if (strncmp((const char *) name, "action",
 					attr->name.len) == 0) {
-				action = attr;
-			} else if (strncmp((const char *) name, "prompt",
+			action = attr;
+		} else if (strncmp((const char *) name, "prompt",
 					attr->name.len) == 0) {
-				prompt = attr;
-			} else if (strncmp((const char *) name, "name",
+			prompt = attr;
+		} else if (strncmp((const char *) name, "name",
 					attr->name.len) == 0) {
-			} else {
-				attrs[n_attrs++] = *attr;
-			}
+		} else {
+			attrs[n_attrs++] = *attr;
 		}
-
-		attrs[n_attrs].ns = HUBBUB_NS_HTML;
-		attrs[n_attrs].name.ptr = (const uint8_t *) "name";
-		attrs[n_attrs].name.len = SLEN("name");
-		attrs[n_attrs].value.ptr = (const uint8_t *) "isindex";
-		attrs[n_attrs].value.len = SLEN("isindex");
-		n_attrs++;
 	}
 
+	attrs[n_attrs].ns = HUBBUB_NS_HTML;
+	attrs[n_attrs].name.ptr = (const uint8_t *) "name";
+	attrs[n_attrs].name.len = SLEN("name");
+	attrs[n_attrs].value.ptr = (const uint8_t *) "isindex";
+	attrs[n_attrs].value.len = SLEN("isindex");
+	n_attrs++;
+
+
 	/* isindex algorithm */
+
+	treebuilder->context.frameset_ok = false;
 
 	/* Set up dummy as a start tag token */
 	dummy.type = HUBBUB_TOKEN_START_TAG;
@@ -1225,25 +1251,13 @@ hubbub_error process_isindex_in_body(hubbub_treebuilder *treebuilder,
 		return err;
 	}
 
-	/* Act as if <p> were seen */
-	dummy.data.tag.name.ptr = (const uint8_t *) "p";
-	dummy.data.tag.name.len = SLEN("p");
-	dummy.data.tag.n_attributes = 0;
-	dummy.data.tag.attributes = NULL;
-
-	err = process_container_in_body(treebuilder, &dummy);
-	if (err != HUBBUB_OK) {
-		free(attrs);
-		return err;
-	}
-
 	/* Act as if <label> were seen */
 	dummy.data.tag.name.ptr = (const uint8_t *) "label";
 	dummy.data.tag.name.len = SLEN("label");
 	dummy.data.tag.n_attributes = 0;
 	dummy.data.tag.attributes = NULL;
 
-	err = process_phrasing_in_body(treebuilder, &dummy);
+	err = insert_element(treebuilder, &dummy.data.tag, true);
 	if (err != HUBBUB_OK) {
 		free(attrs);
 		return err;
@@ -1255,7 +1269,9 @@ hubbub_error process_isindex_in_body(hubbub_treebuilder *treebuilder,
 		dummy.data.character = prompt->value;
 	} else {
 		/** \todo Localisation */
-#define PROMPT "This is a searchable index. Insert your search keywords here: "
+		/** \todo what does input field here mean?
+		  the text in the input field? */
+#define PROMPT "This is a searchable index. Enter search keywords: "
 		dummy.data.character.ptr = (const uint8_t *) PROMPT;
 		dummy.data.character.len = SLEN(PROMPT);
 #undef PROMPT
@@ -1276,12 +1292,6 @@ hubbub_error process_isindex_in_body(hubbub_treebuilder *treebuilder,
 	dummy.data.tag.n_attributes = n_attrs;
 	dummy.data.tag.attributes = attrs;
 
-	err = reconstruct_active_formatting_list(treebuilder);
-	if (err != HUBBUB_OK) {
-		free(attrs);
-		return err;
-	}
-
 	err = insert_element(treebuilder, &dummy.data.tag, false);
 	if (err != HUBBUB_OK) {
 		free(attrs);
@@ -1291,16 +1301,14 @@ hubbub_error process_isindex_in_body(hubbub_treebuilder *treebuilder,
 	/* No longer need attrs */
 	free(attrs);
 
-	treebuilder->context.frameset_ok = false;
-
 	/* Act as if </label> was seen */
-	err = process_0generic_in_body(treebuilder, LABEL);
-	assert(err == HUBBUB_OK);
 
-	/* Act as if </p> was seen */
-	err = process_0p_in_body(treebuilder);
-	if (err != HUBBUB_OK)
-		return err;
+	element_stack_pop(treebuilder,
+			&ns, &o_type, &node);
+
+	treebuilder->tree_handler->unref_node(
+			treebuilder->tree_handler->ctx,
+			node);
 
 	/* Act as if <hr> was seen */
 	dummy.data.tag.name.ptr = (const uint8_t *) "hr";
@@ -1308,7 +1316,7 @@ hubbub_error process_isindex_in_body(hubbub_treebuilder *treebuilder,
 	dummy.data.tag.n_attributes = 0;
 	dummy.data.tag.attributes = NULL;
 
-	err = process_hr_in_body(treebuilder, &dummy);
+	err = insert_element(treebuilder, &dummy.data.tag, false);
 	if (err != HUBBUB_OK)
 		return err;
 

@@ -14,7 +14,7 @@ adoption02.dat		html5lib tests for the adoption agency algorithm
 #entities02.dat		NA
 #html5test-com.dat	NA
 #inbody01.dat		NA
-#isindex.dat		NA
+isindex.dat		html5lib treebuilder tests for isindex element
 #main-element.dat	NA
 #pending-spec-changes.dat	NA
 #pending-spec-changes-plain-text-unsafe.dat	NA
@@ -44,7 +44,7 @@ tests1.dat		html5lib treebuilder tests
 #tests24.dat		NA
 #tests25.dat		NA
 #tests26.dat		NA
-#tests2.dat		NA
+tests2.dat		html5lib treebuilder tests
 #tests3.dat		NA
 tests4.dat		html5lib treebuilder tests
 tests5.dat		html5lib treebuilder tests
