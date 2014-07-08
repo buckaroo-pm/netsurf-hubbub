@@ -225,7 +225,8 @@ hubbub_error handle_in_table(hubbub_treebuilder *treebuilder,
 			/** \todo fragment case */
 			if(!element_in_scope(treebuilder, TABLE, TABLE_SCOPE)) {
 					/* todo parse error */
-					break;
+				handled = true;
+				break;
 			}
 
 			element_stack_pop_until(treebuilder, TABLE);

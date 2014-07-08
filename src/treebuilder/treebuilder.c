@@ -142,6 +142,7 @@ hubbub_error hubbub_treebuilder_create(hubbub_tokeniser *tokeniser,
 
 	tb->error_handler = NULL;
 	tb->error_pw = NULL;
+	tb->quirks_mode = HUBBUB_QUIRKS_MODE_NONE;
 
 	tokparams.token_handler.handler = hubbub_treebuilder_token_handler;
 	tokparams.token_handler.pw = tb;

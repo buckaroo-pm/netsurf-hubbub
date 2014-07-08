@@ -128,6 +128,7 @@ struct hubbub_treebuilder
 
 	hubbub_error_handler error_handler;	/**< Error handler */
 	void *error_pw;				/**< Error handler data */
+	hubbub_quirks_mode quirks_mode;		/**< The quirks mode to which the document is set to*/
 };
 
 hubbub_error hubbub_treebuilder_token_handler(

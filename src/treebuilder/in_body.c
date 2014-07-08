@@ -321,7 +321,13 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 
 		err = parse_generic_rcdata(treebuilder, token, false);
 	} else if (type == TABLE) {
-		err = process_container_in_body(treebuilder, token);
+		if(treebuilder->quirks_mode != HUBBUB_QUIRKS_MODE_FULL &&
+				element_in_scope(treebuilder, P,
+					BUTTON_SCOPE)) {
+			err = close_p_in_body(treebuilder);
+		}
+		insert_element(treebuilder, &token->data.tag,
+				true);
 		if (err == HUBBUB_OK) {
 			treebuilder->context.frameset_ok = false;
 

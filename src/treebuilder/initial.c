@@ -125,7 +125,7 @@ static bool lookup_full_quirks(hubbub_treebuilder *treebuilder,
 #define S(s)	(uint8_t *) s, sizeof s - 1
 
 	/* Check the name is "HTML" (case-insensitively) */
-	if (!hubbub_string_match_ci(name, name_len, S("HTML")))
+	if (!hubbub_string_match(name, name_len, S("html")))
 		return true;
 
 	/* No public id means not-quirks */
@@ -148,7 +148,116 @@ static bool lookup_full_quirks(hubbub_treebuilder *treebuilder,
 			hubbub_string_match_ci(public_id, public_id_len,
 				S("HTML")) ||
 			hubbub_string_match_ci(system_id, system_id_len,
-				S("http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd"))) {
+				S("http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd")) ||
+			starts_with(public_id, public_id_len,
+				S("-//AS//DTD HTML 3.0 asWedit + extensions//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//AdvaSoft Ltd//DTD HTML 3.0 asWedit + extensions//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML 2.0 Level 1//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML 2.0 Level 2//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML 2.0 Strict Level 1//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML 2.0 Strict Level 2//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML 2.0 Strict//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML 2.0//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML 2.1E//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML 3.0//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML 3.2 Final//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML 3.2//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML 3//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML Level 0//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML Level 1//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML Level 2//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML Level 3//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML Strict Level 0//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML Strict Level 1//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML Strict Level 2//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML Strict Level 3//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML Strict//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//IETF//DTD HTML//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Metrius//DTD Metrius Presentational//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Microsoft//DTD Internet Explorer 2.0 HTML Strict//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Microsoft//DTD Internet Explorer 2.0 HTML//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Microsoft//DTD Internet Explorer 2.0 Tables//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Microsoft//DTD Internet Explorer 3.0 HTML Strict//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Microsoft//DTD Internet Explorer 3.0 HTML//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Microsoft//DTD Internet Explorer 3.0 Tables//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Netscape Comm. Corp.//DTD HTML//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Netscape Comm. Corp.//DTD Strict HTML//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//O'Reilly and Associates//DTD HTML 2.0//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//O'Reilly and Associates//DTD HTML Extended 1.0//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//O'Reilly and Associates//DTD HTML Extended Relaxed 1.0//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//SQ//DTD HTML 2.0 HoTMetaL + extensions//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//SoftQuad Software//DTD HoTMetaL PRO 6.0::19990601::extensions to HTML 4.0//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//SoftQuad//DTD HoTMetaL PRO 4.0::19971010::extensions to HTML 4.0//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Spyglass//DTD HTML 2.0 Extended//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Sun Microsystems Corp.//DTD HotJava HTML//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//Sun Microsystems Corp.//DTD HotJava Strict HTML//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//W3C//DTD HTML 3 1995-03-24//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//W3C//DTD HTML 3.2 Draft//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//W3C//DTD HTML 3.2 Final//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//W3C//DTD HTML 3.2//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//W3C//DTD HTML 3.2S Draft//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//W3C//DTD HTML 4.0 Frameset//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//W3C//DTD HTML 4.0 Transitional//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//W3C//DTD HTML Experimental 19960712//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//W3C//DTD HTML Experimental 970421//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//W3C//DTD W3 HTML//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//W3O//DTD W3 HTML 3.0//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//WebTechs//DTD Mozilla HTML 2.0//")) ||
+			starts_with(public_id, public_id_len,
+				S("-//WebTechs//DTD Mozilla HTML//"))
+						) {
 		return true;
 	}
 
@@ -178,9 +287,7 @@ static bool lookup_limited_quirks(hubbub_treebuilder *treebuilder,
 {
 	const uint8_t *public_id = cdoc->public_id.ptr;
 	size_t public_id_len = cdoc->public_id.len;
-
 	UNUSED(treebuilder);
-
 #define S(s)	(uint8_t *) s, sizeof s - 1
 
 	if (starts_with(public_id, public_id_len,
@@ -226,6 +333,7 @@ hubbub_error handle_initial(hubbub_treebuilder *treebuilder,
 			treebuilder->tree_handler->set_quirks_mode(
 					treebuilder->tree_handler->ctx,
 					HUBBUB_QUIRKS_MODE_FULL);
+			treebuilder->quirks_mode = HUBBUB_QUIRKS_MODE_FULL;
 			treebuilder->context.mode = BEFORE_HTML;
 		}
 		break;
@@ -271,10 +379,12 @@ hubbub_error handle_initial(hubbub_treebuilder *treebuilder,
 			treebuilder->tree_handler->set_quirks_mode(
 					treebuilder->tree_handler->ctx,
 					HUBBUB_QUIRKS_MODE_FULL);
+			treebuilder->quirks_mode = HUBBUB_QUIRKS_MODE_FULL;
 		} else if (lookup_limited_quirks(treebuilder, cdoc)) {
 			treebuilder->tree_handler->set_quirks_mode(
 					treebuilder->tree_handler->ctx,
 					HUBBUB_QUIRKS_MODE_LIMITED);
+			treebuilder->quirks_mode = HUBBUB_QUIRKS_MODE_LIMITED;
 		}
 
 		treebuilder->context.mode = BEFORE_HTML;
@@ -287,6 +397,7 @@ hubbub_error handle_initial(hubbub_treebuilder *treebuilder,
 		treebuilder->tree_handler->set_quirks_mode(
 				treebuilder->tree_handler->ctx,
 				HUBBUB_QUIRKS_MODE_FULL);
+		treebuilder->quirks_mode = HUBBUB_QUIRKS_MODE_FULL;
 		err = HUBBUB_REPROCESS;
 		break;
 	}
