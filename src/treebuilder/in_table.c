@@ -80,16 +80,19 @@ hubbub_error handle_in_table(hubbub_treebuilder *treebuilder,
 {
 	hubbub_error err = HUBBUB_OK;
 	bool handled = true;
+	element_type type =
+		current_node(treebuilder);
+	bool tainted = !(type == TABLE ||
+			type == TBODY || type == TFOOT ||
+			type == THEAD || type == TR);
 
 	switch (token->type) {
 	case HUBBUB_TOKEN_CHARACTER:
-		if (treebuilder->context.element_stack[
-				current_table(treebuilder)
-				].tainted) {
+		if (tainted) {
 			handled = false;
 		} else {
-			err = process_characters_expect_whitespace(
-					treebuilder, token, true);
+			err = process_in_table_text(
+					treebuilder, token);
 			handled = (err == HUBBUB_OK);
 		}
 		break;
@@ -105,9 +108,6 @@ hubbub_error handle_in_table(hubbub_treebuilder *treebuilder,
 	{
 		element_type type = element_type_from_name(treebuilder,
 				&token->data.tag.name);
-		bool tainted = treebuilder->context.element_stack[
-					current_table(treebuilder)
-					].tainted;
 
 		if (type == CAPTION) {
 			clear_stack_table_context(treebuilder);
@@ -206,11 +206,40 @@ hubbub_error handle_in_table(hubbub_treebuilder *treebuilder,
 			reset_insertion_mode(treebuilder);
 
 			err = HUBBUB_REPROCESS;
-		} else if (!tainted && (type == STYLE || type == SCRIPT)) {
+		} else if (type == STYLE || type == SCRIPT) {
 			err = handle_in_head(treebuilder, token);
-		} else if (!tainted && type == INPUT) {
+		} else if (type == INPUT) {
 			err = process_input_in_table(treebuilder, token);
 			handled = (err == HUBBUB_OK);
+		} else if(type == FORM) {
+			element_context *stack = treebuilder->context.element_stack;
+			bool template_in_stack = false;
+			uint32_t n;
+			for (n = treebuilder->context.current_node;
+					n > 0; n--) {
+				if(stack[n].type == TEMPLATE) {
+					template_in_stack = true;
+					break;
+				}
+			}
+			if(template_in_stack == true ||
+					treebuilder->context.form_element != NULL ) {
+				/* ignore the token*/
+				break;
+			}
+			insert_element(treebuilder, &token->data.tag, true);
+			treebuilder->context.form_element =
+				treebuilder->context.element_stack[
+				treebuilder->context.current_node].node;
+			{
+				/* pop and unref */
+				hubbub_ns ns;
+				element_type otype;
+				void *node;
+
+				err = element_stack_pop(treebuilder, &ns,
+						&otype, &node);
+			}
 		} else {
 			handled = false;
 		}

@@ -48,6 +48,7 @@ static const struct {
 	{ S("hr"), HR },		{ S("iframe"), IFRAME },
 	{ S("image"), IMAGE },		{ S("img"), IMG },
 	{ S("input"), INPUT },		{ S("isindex"), ISINDEX },
+	{ S("keygen"), KEYGEN },
 	{ S("li"), LI },		{ S("link"), LINK },
 	{ S("listing"), LISTING },	{ S("main"), MAIN },
 	{ S("menu"), MENU },		{ S("menuitem"), MENUITEM },
@@ -424,6 +425,48 @@ hubbub_error process_characters_expect_whitespace(
 	return HUBBUB_OK;
 }
 
+/**
+ * Process a character token in table text
+ *
+ * \param treebuilder               The treebuilder instance
+ * \param token                     The character token
+ * \return HUBBUB_REPROCESS if the token needs reprocessing
+ *         HUBBUB_OK if it contained only whitespace,
+ *         appropriate error otherwise
+ */
+hubbub_error process_in_table_text(
+		hubbub_treebuilder *treebuilder,
+		const hubbub_token *token)
+{
+	const uint8_t *data = token->data.character.ptr;
+	size_t len = token->data.character.len;
+	size_t c;
+
+	for (c = 0; c < len; c++) {
+		if (data[c] != 0x09 && data[c] != 0x0A &&
+				data[c] != 0x0C && data[c] != 0x20)
+			break;
+	}
+
+	if (c == len) {
+		hubbub_error error;
+		hubbub_string temp;
+
+		temp.ptr = data;
+		temp.len = c;
+
+		error = append_text(treebuilder, &temp);
+		if (error != HUBBUB_OK)
+			return error;
+	}
+
+	/* Non-whitespace characters in token, so reprocess */
+	if (c != len) {
+		return HUBBUB_REPROCESS;
+	}
+
+	return HUBBUB_OK;
+}
 /**
  * Process a comment token, appending it to the given parent
  *

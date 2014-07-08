@@ -27,7 +27,7 @@ typedef enum
 	A, B, BIG, CODE, EM, FONT, I, NOBR, S, SMALL, STRIKE, STRONG, TT, U,
 /* Phrasing */
 	/**< \todo Enumerate phrasing elements */
-	COMMAND, DATAGRID, DIALOG, IMAGE,LABEL, OPTGROUP, OPTION, OUTPUT, RP, RT, RUBY, SPACER, SPAN, SUB, SUP, VAR,
+	COMMAND, DATAGRID, DIALOG, IMAGE, KEYGEN, LABEL, OPTGROUP, OPTION, OUTPUT, RP, RT, RUBY, SPACER, SPAN, SUB, SUP, VAR,
 /* MathML */
 	MATH, MGLYPH, MALIGNMARK, MI, MO, MN, MS, MTEXT, ANNOTATION_XML,
 /* SVG */
@@ -137,6 +137,8 @@ hubbub_error hubbub_treebuilder_token_handler(
 hubbub_error process_characters_expect_whitespace(
 		hubbub_treebuilder *treebuilder, const hubbub_token *token,
 		bool insert_into_current_node);
+hubbub_error process_in_table_text(
+		hubbub_treebuilder *treebuilder, const hubbub_token *token);
 hubbub_error process_comment_append(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token, void *parent);
 hubbub_error parse_generic_rcdata(hubbub_treebuilder *treebuilder,

@@ -385,15 +385,15 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 		if (err != HUBBUB_OK)
 			return err;
 
-		if (treebuilder->context.mode == IN_BODY) {
-			treebuilder->context.mode = IN_SELECT;
-		} else if (treebuilder->context.mode == IN_TABLE ||
+		if (treebuilder->context.mode == IN_TABLE ||
 				treebuilder->context.mode == IN_CAPTION ||
 				treebuilder->context.mode == IN_COLUMN_GROUP ||
 				treebuilder->context.mode == IN_TABLE_BODY ||
 				treebuilder->context.mode == IN_ROW ||
 				treebuilder->context.mode == IN_CELL) {
 			treebuilder->context.mode = IN_SELECT_IN_TABLE;
+		} else {
+			treebuilder->context.mode = IN_SELECT;
 		}
 	} else if (type == OPTGROUP || type == OPTION) {
 		err = process_opt_in_body(treebuilder, token);

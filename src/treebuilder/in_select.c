@@ -83,10 +83,10 @@ hubbub_error handle_in_select(hubbub_treebuilder *treebuilder,
 
 			err = insert_element(treebuilder, &token->data.tag, 
 					true);
-		} else if (type == SELECT || type == INPUT ||
+		} else if (type == SELECT || type == KEYGEN || type == INPUT ||
 				type == TEXTAREA) {
 
-			if (element_in_scope(treebuilder, SELECT, TABLE_SCOPE)) {
+			if (element_in_scope(treebuilder, SELECT, SELECT_SCOPE)) {
 				element_stack_pop_until(treebuilder, 
 						SELECT);
 				reset_insertion_mode(treebuilder);
