@@ -50,8 +50,8 @@ tests4.dat		html5lib treebuilder tests
 tests5.dat		html5lib treebuilder tests
 tests6.dat		html5lib treebuilder tests
 tests7.dat		html5lib treebuilder tests
-#tests8.dat		NA
-#tests9.dat		NA
+tests8.dat		html5lib treebuilder tests
+tests9.dat		html5lib treebuilder tests
 #tests_innerHTML_1.dat	NA
 #tricky01.dat		NA
 #webkit01.dat		NA

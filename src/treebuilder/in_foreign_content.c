@@ -40,6 +40,8 @@ static const case_changes svg_attributes[] = {
 	{ S("contentstyletype"),	"contentStyleType" },
 	{ S("diffuseconstant"),		"diffuseConstant" },
 	{ S("edgemode"),		"edgeMode" },
+	{ S("externalresourcesrequired"),"externalResourcesRequired" },
+	{ S("filterres"),		"filterRes" },
 	{ S("filterunits"),		"filterUnits" },
 	{ S("glyphref"),		"glyphRef" },
 	{ S("gradienttransform"),	"gradientTransform" },
@@ -360,20 +362,46 @@ static hubbub_error process_as_in_secondary(hubbub_treebuilder *treebuilder,
 static void foreign_break_out(hubbub_treebuilder *treebuilder)
 {
 	element_context *stack = treebuilder->context.element_stack;
+	hubbub_ns ns;
+	element_type type;
+	void *node;
 
 	/** \todo parse error */
+	/** todo fragment case */
+	element_stack_pop(treebuilder, &ns, &type, &node);
+	treebuilder->tree_handler->unref_node(
+			treebuilder->tree_handler->ctx,
+			node);
 
 	while (stack[treebuilder->context.current_node].ns !=
-			HUBBUB_NS_HTML) {
-		hubbub_ns ns;
-		element_type type;
-		void *node;
+			HUBBUB_NS_HTML &&
+			!(stack[treebuilder->context.current_node].ns ==
+				HUBBUB_NS_MATHML && (
+					stack[treebuilder->context.current_node].type ==
+					MI || stack[treebuilder->context.current_node].type ==
+					MO || stack[treebuilder->context.current_node].type ==
+					MN || stack[treebuilder->context.current_node].type ==
+					MS || stack[treebuilder->context.current_node].type ==
+					MTEXT)) &&
+			!(stack[treebuilder->context.current_node].ns ==
+				HUBBUB_NS_SVG && (
+					stack[treebuilder->context.current_node].type ==
+						FOREIGNOBJECT ||
+					stack[treebuilder->context.current_node].type ==
+						DESC ||
+					stack[treebuilder->context.current_node].type ==
+						TITLE))
+			) {
 
 		element_stack_pop(treebuilder, &ns, &type, &node);
-
 		treebuilder->tree_handler->unref_node(
 				treebuilder->tree_handler->ctx,
 				node);
+
+		if(ns == HUBBUB_NS_MATHML &&
+				type == ANNOTATION_XML) {
+			/*todo check for attributes */
+		}
 	}
 
 	treebuilder->context.mode = treebuilder->context.second_mode;
@@ -389,9 +417,30 @@ static void foreign_break_out(hubbub_treebuilder *treebuilder)
 hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token)
 {
+	hubbub_ns cur_node_ns = treebuilder->context.element_stack[
+		treebuilder->context.current_node].ns;
+
+	element_type cur_node = current_node(treebuilder);
+	element_type type = element_type_from_name(treebuilder,
+			&token->data.tag.name);
+
+	if (treebuilder->context.current_node == 0 ||
+			cur_node_ns == HUBBUB_NS_HTML ||
+			(cur_node_ns == HUBBUB_NS_MATHML &&
+			 (type != MGLYPH && type != MALIGNMARK) &&
+			 (cur_node == MI || cur_node == MO ||
+			  cur_node == MN || cur_node == MS ||
+			  cur_node == MTEXT)) ||
+			(type == SVG && (cur_node_ns == HUBBUB_NS_MATHML &&
+					 cur_node == ANNOTATION_XML)) ||
+			(cur_node_ns == HUBBUB_NS_SVG &&
+			 (cur_node == FOREIGNOBJECT ||
+			  cur_node == DESC ||
+			  cur_node == TITLE))) {
+		return process_as_in_secondary(treebuilder, token);
+	}
 	hubbub_error err = HUBBUB_OK;
 	const uint8_t *c;
-
 	switch (token->type) {
 	case HUBBUB_TOKEN_CHARACTER:
 		c = (token->data.character.ptr);
@@ -411,27 +460,8 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 		break;
 	case HUBBUB_TOKEN_START_TAG:
 	{
-		hubbub_ns cur_node_ns = treebuilder->context.element_stack[
-				treebuilder->context.current_node].ns;
-
-		element_type cur_node = current_node(treebuilder);
-		element_type type = element_type_from_name(treebuilder,
-				&token->data.tag.name);
-
-		if (cur_node_ns == HUBBUB_NS_HTML ||
-			(cur_node_ns == HUBBUB_NS_MATHML &&
-				(type != MGLYPH && type != MALIGNMARK) &&
-				(cur_node == MI || cur_node == MO ||
-				cur_node == MN || cur_node == MS ||
-				cur_node == MTEXT)) ||
-			(type == SVG && (cur_node_ns == HUBBUB_NS_MATHML &&
-				cur_node == ANNOTATION_XML)) ||
-			(cur_node_ns == HUBBUB_NS_SVG &&
-				(cur_node == FOREIGNOBJECT ||
-				cur_node == DESC ||
-				cur_node == TITLE))) {
-			err = process_as_in_secondary(treebuilder, token);
-		} else if (type == B || type ==  BIG || type == BLOCKQUOTE ||
+		bool handled = false;
+		if (type == B || type ==  BIG || type == BLOCKQUOTE ||
 				type == BODY || type == BR || type == CENTER ||
 				type == CODE || type == DD || type == DIV ||
 				type == DL || type == DT || type == EM ||
@@ -449,9 +479,11 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 				type == VAR) {
 			foreign_break_out(treebuilder);
 			err = HUBBUB_REPROCESS;
+			handled = true;
 		} else if (type == FONT) {
 			const hubbub_tag *tag = &token->data.tag;
 			size_t i;
+			bool found = false;
 
 			for (i = 0; i < tag->n_attributes; i++) {
 				hubbub_attribute *attr = &tag->attributes[i];
@@ -461,20 +493,24 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 				if (hubbub_string_match(name, len, 
 						(const uint8_t *) "color", 
 						SLEN("color")) ||
-						hubbub_string_match(name, len,
+					hubbub_string_match(name, len,
 						(const uint8_t *) "face",
 						SLEN("face")) ||
-						hubbub_string_match(name, len,
+					hubbub_string_match(name, len,
 						(const uint8_t *) "size",
-						SLEN("size")))
+						SLEN("size"))) {
+					found = true;
 					break;
+				}
 			}
 
-			if (i != tag->n_attributes) {
+			if (found) {
 				foreign_break_out(treebuilder);
 				err = HUBBUB_REPROCESS;
+				handled = true;
 			}
-		} else {
+		}
+		if (!handled) {
 			hubbub_tag tag = token->data.tag;
 
 			if (cur_node_ns == HUBBUB_NS_SVG) {
@@ -504,8 +540,7 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 				&token->data.tag.name);
 		uint32_t node;
 		element_context *stack = treebuilder->context.element_stack;
-
-		for (node = treebuilder->context.current_node; node > 0; node--) {
+		for (node = treebuilder->context.current_node; node > 1; node--) {
 			if(stack[node].type == type) {
 				hubbub_ns ns;
 				element_type type;
@@ -518,8 +553,13 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 				}
 				return HUBBUB_OK;
 			}
+			if(stack[node].ns == HUBBUB_NS_HTML) {
+				break;
+			}
 		}
-		err = process_as_in_secondary(treebuilder, token);
+		if(node > 1) {
+			err = process_as_in_secondary(treebuilder, token);
+		}
 	}
 	break;
 	case HUBBUB_TOKEN_EOF:
