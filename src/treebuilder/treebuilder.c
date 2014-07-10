@@ -5,6 +5,8 @@
  * Copyright 2008 John-Mark Bell <jmb@netsurf-browser.org>
  */
 
+#define _GNU_SOURCE
+
 #include <assert.h>
 #include <string.h>
 
@@ -137,6 +139,8 @@ hubbub_error hubbub_treebuilder_create(hubbub_tokeniser *tokeniser,
 	 * if the first item in the stack is in use. Assert this here. */
 	assert(HTML != 0);
 	tb->context.element_stack[0].type = (element_type) 0;
+	tb->context.element_stack[0].attributes = NULL;
+	tb->context.element_stack[0].n_attributes = 0;
 
 	tb->context.strip_leading_lr = false;
 	tb->context.frameset_ok = true;
@@ -687,7 +691,9 @@ hubbub_error reconstruct_active_formatting_list(hubbub_treebuilder *treebuilder)
 			goto cleanup;
 
 		error = element_stack_push(treebuilder, entry->details.ns,
-				entry->details.type, appended);
+				entry->details.type, appended,
+				entry->details.attributes,
+				entry->details.n_attributes);
 		if (error != HUBBUB_OK) {
 			remove_node_from_dom(treebuilder, appended);
 
@@ -716,8 +722,9 @@ hubbub_error reconstruct_active_formatting_list(hubbub_treebuilder *treebuilder)
 
 		error = formatting_list_replace(treebuilder, entry,
 				entry->details.ns, entry->details.type,
-				node, sp,
-				&prev_ns, &prev_type, &prev_node,
+				node,  entry->details.attributes,
+				entry->details.n_attributes,
+				sp, &prev_ns, &prev_type, &prev_node,
 				&prev_stack_index);
 		/* Cannot fail. Ensure this. */
 		assert(error == HUBBUB_OK);
@@ -880,7 +887,8 @@ hubbub_error insert_element(hubbub_treebuilder *treebuilder,
 
 	if (push) {
 		error = element_stack_push(treebuilder,
-				tag->ns, type, appended);
+				tag->ns, type, appended,
+				tag->attributes, tag->n_attributes);
 		if (error != HUBBUB_OK) {
 			remove_node_from_dom(treebuilder, appended);
 
@@ -1154,9 +1162,11 @@ bool is_form_associated(element_type type)
  * \return HUBBUB_OK on success, appropriate error otherwise.
  */
 hubbub_error element_stack_push(hubbub_treebuilder *treebuilder,
-		hubbub_ns ns, element_type type, void *node)
+		hubbub_ns ns, element_type type, void *node,
+		hubbub_attribute *attrs, size_t n_attrs)
 {
 	uint32_t slot = treebuilder->context.current_node + 1;
+	size_t i;
 
 	if (slot >= treebuilder->context.stack_alloc) {
 		element_context *temp = realloc(
@@ -1175,6 +1185,16 @@ hubbub_error element_stack_push(hubbub_treebuilder *treebuilder,
 	treebuilder->context.element_stack[slot].ns = ns;
 	treebuilder->context.element_stack[slot].type = type;
 	treebuilder->context.element_stack[slot].node = node;
+
+	if(n_attrs > 0) {
+		treebuilder->context.element_stack[slot].attributes =
+			(hubbub_attribute *)malloc(n_attrs * sizeof(hubbub_attribute));
+	}
+	for (i = 0; i < n_attrs; i++) {
+		copy_attribute(&attrs[i],
+				&treebuilder->context.element_stack[slot].attributes[i]);
+        }
+	treebuilder->context.element_stack[slot].n_attributes = n_attrs;
 
 	treebuilder->context.current_node = slot;
 
@@ -1371,11 +1391,14 @@ element_type prev_node(hubbub_treebuilder *treebuilder)
  */
 hubbub_error formatting_list_append(hubbub_treebuilder *treebuilder,
 		hubbub_ns ns, element_type type, void *node,
+		 hubbub_attribute *attrs, size_t n_attrs,
 		uint32_t stack_index)
 {
 	formatting_list_entry *entry;
 	uint32_t n_elements = 0;
 	formatting_list_entry *remove_entry;
+	size_t i;
+
 	for (entry = treebuilder->context.formatting_list_end;
 			entry != NULL; entry = entry->prev) {
 		/* Assumption: HTML and TABLE elements are not in the list */
@@ -1410,6 +1433,15 @@ hubbub_error formatting_list_append(hubbub_treebuilder *treebuilder,
 	entry->details.type = type;
 	entry->details.node = node;
 	entry->stack_index = stack_index;
+	if(n_attrs > 0) {
+		entry->details.attributes =
+		(hubbub_attribute *)malloc(n_attrs * sizeof(hubbub_attribute));
+	}
+	for(i = 0; i < n_attrs; i++) {
+		copy_attribute(&attrs[i],
+				&entry->details.attributes[i]);
+	}
+	entry->details.n_attributes = n_attrs;
 
 	entry->prev = treebuilder->context.formatting_list_end;
 	entry->next = NULL;
@@ -1439,9 +1471,11 @@ hubbub_error formatting_list_append(hubbub_treebuilder *treebuilder,
 hubbub_error formatting_list_insert(hubbub_treebuilder *treebuilder,
 		formatting_list_entry *prev, formatting_list_entry *next,
 		hubbub_ns ns, element_type type, void *node,
+		hubbub_attribute *attrs, size_t n_attrs,
 		uint32_t stack_index)
 {
 	formatting_list_entry *entry;
+	size_t i;
 
 	if (prev != NULL) {
 		assert(prev->next == next);
@@ -1459,6 +1493,15 @@ hubbub_error formatting_list_insert(hubbub_treebuilder *treebuilder,
 	entry->details.type = type;
 	entry->details.node = node;
 	entry->stack_index = stack_index;
+	entry->details.n_attributes = n_attrs;
+	if(n_attrs > 0) {
+		entry->details.attributes = (hubbub_attribute *)
+			malloc(n_attrs * sizeof(hubbub_attribute));
+	}
+	for(i = 0;i < n_attrs; i++) {
+		copy_attribute(&attrs[i],
+				&entry->details.attributes[i]);
+	}
 
 	entry->prev = prev;
 	entry->next = next;
@@ -1530,12 +1573,13 @@ hubbub_error formatting_list_remove(hubbub_treebuilder *treebuilder,
 hubbub_error formatting_list_replace(hubbub_treebuilder *treebuilder,
 		formatting_list_entry *entry,
 		hubbub_ns ns, element_type type, void *node,
+		hubbub_attribute *attrs, size_t n_attrs,
 		uint32_t stack_index,
 		hubbub_ns *ons, element_type *otype, void **onode,
 		uint32_t *ostack_index)
 {
 	UNUSED(treebuilder);
-
+	size_t i = 0;
 	*ons = entry->details.ns;
 	*otype = entry->details.type;
 	*onode = entry->details.node;
@@ -1544,11 +1588,36 @@ hubbub_error formatting_list_replace(hubbub_treebuilder *treebuilder,
 	entry->details.ns = ns;
 	entry->details.type = type;
 	entry->details.node = node;
+	entry->details.n_attributes = n_attrs;
+	if(n_attrs > 0) {
+		entry->details.attributes =
+			(hubbub_attribute *)malloc(n_attrs * sizeof(hubbub_attribute));
+	}
+	for(i = 0;i < n_attrs;i++) {
+		copy_attribute(&attrs[i],
+				&entry->details.attributes[i]);
+	}
 	entry->stack_index = stack_index;
 
 	return HUBBUB_OK;
 }
 
+void copy_attribute(hubbub_attribute *source,
+		hubbub_attribute *sink) {
+
+	sink->ns = source->ns;
+
+	sink->name.ptr = (const uint8_t *) strndup(
+			(const char *) source->name.ptr,
+			source->name.len);
+	sink->name.len = source->name.len;
+
+	sink->value.ptr = (const uint8_t *) strndup(
+			(const char *) source->value.ptr,
+			source->value.len);
+	sink->value.len = source->value.len;
+	return;
+}
 
 
 #ifndef NDEBUG

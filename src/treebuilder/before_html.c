@@ -61,6 +61,7 @@ hubbub_error handle_before_html(hubbub_treebuilder *treebuilder,
 	if (handled || err == HUBBUB_REPROCESS) {
 		hubbub_error e;
 		void *html, *appended;
+		size_t i;
 
 		/* We can't use insert_element() here, as it assumes
 		 * that we're inserting into current_node. There is
@@ -110,7 +111,23 @@ hubbub_error handle_before_html(hubbub_treebuilder *treebuilder,
 		treebuilder->context.element_stack[0].type = HTML;
 		treebuilder->context.element_stack[0].node = appended;
 		treebuilder->context.current_node = 0;
+		if(err != HUBBUB_REPROCESS) {
+			if(token->data.tag.n_attributes > 0){
+				treebuilder->context.element_stack[0].attributes =
+					(hubbub_attribute *)malloc(sizeof(hubbub_attribute) *
+							token->data.tag.n_attributes);
+			}
 
+			for(i = 0; i < token->data.tag.n_attributes; i++) {
+				copy_attribute(&token->data.tag.attributes[i],
+						&treebuilder->context.element_stack[0].attributes[i]);
+			}
+			treebuilder->context.element_stack[0].n_attributes =
+				token->data.tag.n_attributes;
+		} else {
+			treebuilder->context.element_stack[0].n_attributes =
+				0;
+		}
 		/** \todo cache selection algorithm */
 
 		treebuilder->context.mode = BEFORE_HEAD;

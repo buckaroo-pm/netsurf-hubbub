@@ -121,6 +121,8 @@ hubbub_error handle_in_table(hubbub_treebuilder *treebuilder,
 					token->data.tag.ns, type,
 					treebuilder->context.element_stack[
 					treebuilder->context.current_node].node,
+					token->data.tag.attributes,
+					token->data.tag.n_attributes,
 					treebuilder->context.current_node);
 			if (err != HUBBUB_OK) {
 				treebuilder->tree_handler->unref_node(

@@ -67,7 +67,8 @@ hubbub_error handle_after_head(hubbub_treebuilder *treebuilder,
 			err = element_stack_push(treebuilder,
 					HUBBUB_NS_HTML,
 					HEAD,
-					treebuilder->context.head_element);
+					treebuilder->context.head_element,
+					NULL, 0);
 			if (err != HUBBUB_OK)
 				return err;
 

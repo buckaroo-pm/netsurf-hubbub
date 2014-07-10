@@ -106,6 +106,8 @@ hubbub_error handle_in_row(hubbub_treebuilder *treebuilder,
 					token->data.tag.ns, type,
 					treebuilder->context.element_stack[
 					treebuilder->context.current_node].node,
+					token->data.tag.attributes,
+					token->data.tag.n_attributes,
 					treebuilder->context.current_node);
 			if (err != HUBBUB_OK) {
 				hubbub_ns ns;

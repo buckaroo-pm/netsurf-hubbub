@@ -57,6 +57,10 @@ typedef struct element_context
 					 * instead of the current node." */
 
 	void *node;			/**< Node pointer */
+	hubbub_attribute *attributes;	/**< The attributes associated with
+					  * element*/
+	size_t n_attributes;		/**< Number of attributes associated
+					  * with the element*/
 } element_context;
 
 /**
@@ -170,7 +174,8 @@ bool is_formatting_element(element_type type);
 bool is_phrasing_element(element_type type);
 
 hubbub_error element_stack_push(hubbub_treebuilder *treebuilder,
-		hubbub_ns ns, element_type type, void *node);
+		hubbub_ns ns, element_type type, void *node,
+		hubbub_attribute *attrs, size_t n_attrs);
 hubbub_error element_stack_pop(hubbub_treebuilder *treebuilder,
 		hubbub_ns *ns, element_type *type, void **node);
 hubbub_error element_stack_pop_until(hubbub_treebuilder *treebuilder,
@@ -183,12 +188,12 @@ element_type current_node(hubbub_treebuilder *treebuilder);
 element_type prev_node(hubbub_treebuilder *treebuilder);
 
 hubbub_error formatting_list_append(hubbub_treebuilder *treebuilder,
-		hubbub_ns ns, element_type type, void *node, 
-		uint32_t stack_index);
+		hubbub_ns ns, element_type type, void *node, hubbub_attribute *attrs,
+		size_t n_attrs, uint32_t stack_index);
 hubbub_error formatting_list_insert(hubbub_treebuilder *treebuilder,
 		formatting_list_entry *prev, formatting_list_entry *next,
-		hubbub_ns ns, element_type type, void *node, 
-		uint32_t stack_index);
+		hubbub_ns ns, element_type type, void *node, hubbub_attribute *attrs,
+		size_t n_attrs, uint32_t stack_index);
 hubbub_error formatting_list_remove(hubbub_treebuilder *treebuilder,
 		formatting_list_entry *entry,
 		hubbub_ns *ns, element_type *type, void **node, 
@@ -196,9 +201,12 @@ hubbub_error formatting_list_remove(hubbub_treebuilder *treebuilder,
 hubbub_error formatting_list_replace(hubbub_treebuilder *treebuilder,
 		formatting_list_entry *entry,
 		hubbub_ns ns, element_type type, void *node, 
+		hubbub_attribute *attrs, size_t n_attrs,
 		uint32_t stack_index,
 		hubbub_ns *ons, element_type *otype, void **onode, 
 		uint32_t *ostack_index);
+void copy_attribute(hubbub_attribute *source,
+		hubbub_attribute *sink);
 
 /* in_foreign_content.c */
 void adjust_mathml_attributes(hubbub_treebuilder *treebuilder, hubbub_tag *tag);

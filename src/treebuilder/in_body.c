@@ -523,12 +523,49 @@ hubbub_error process_html_in_body(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token)
 {
 	/** \todo parse error */
+	size_t i;
+        hubbub_attribute *attrs =
+                treebuilder->context.element_stack[0].attributes;
+        size_t n_attrs =
+		treebuilder->context.element_stack[0].n_attributes;
+
+	size_t j;
+        const hubbub_tag *tag = &token->data.tag;
+
+	bool found = 0;
+
+	size_t dummy_len = 0;
+	element_context *stack = treebuilder->context.element_stack;
+
+	/** This O(n^2) algorithm can be easily further reduced in time complexity to improve speed*/
+        for (j = 0; j < tag->n_attributes; j++) {
+		found = 0;
+                for (i = 0; i < n_attrs; i++) {
+                        if (hubbub_string_match(attrs[i].name.ptr, attrs[i].name.len,
+                                                tag->attributes[j].name.ptr,
+                                                tag->attributes[j].name.len) == true) {
+				found = 1;
+				break;
+                        }
+                }
+		if(!found) {
+			stack->n_attributes += 1;
+			stack->attributes =
+				realloc(stack->attributes,
+						stack->n_attributes
+						* sizeof (stack->attributes[0]));
+			copy_attribute(&tag->attributes[j],
+					&stack->attributes[
+					(stack->n_attributes)-1]);
+			dummy_len += 1;
+		}
+        }
 
 	return treebuilder->tree_handler->add_attributes(
 			treebuilder->tree_handler->ctx,
 			treebuilder->context.element_stack[0].node,
-			token->data.tag.attributes, 
-			token->data.tag.n_attributes);
+			&stack->attributes[stack->n_attributes] - dummy_len,
+			dummy_len);
 }
 
 /**
@@ -876,6 +913,7 @@ hubbub_error process_a_in_body(hubbub_treebuilder *treebuilder,
 	err = formatting_list_append(treebuilder, token->data.tag.ns, A, 
 		treebuilder->context.element_stack[
 			treebuilder->context.current_node].node, 
+		token->data.tag.attributes, token->data.tag.n_attributes,
 		treebuilder->context.current_node);
 	if (err != HUBBUB_OK) {
 		hubbub_ns ns;
@@ -929,6 +967,7 @@ hubbub_error process_presentational_in_body(hubbub_treebuilder *treebuilder,
 	err = formatting_list_append(treebuilder, token->data.tag.ns, type, 
 		treebuilder->context.element_stack[
 		treebuilder->context.current_node].node, 
+		token->data.tag.attributes, token->data.tag.n_attributes,
 		treebuilder->context.current_node);
 	if (err != HUBBUB_OK) {
 		hubbub_ns ns;
@@ -995,6 +1034,7 @@ hubbub_error process_nobr_in_body(hubbub_treebuilder *treebuilder,
 	err = formatting_list_append(treebuilder, token->data.tag.ns, NOBR, 
 		treebuilder->context.element_stack[
 		treebuilder->context.current_node].node, 
+		token->data.tag.attributes, token->data.tag.n_attributes,
 		treebuilder->context.current_node);
 	if (err != HUBBUB_OK) {
 		hubbub_ns ns;
@@ -1082,6 +1122,7 @@ hubbub_error process_applet_marquee_object_in_body(
 	err = formatting_list_append(treebuilder, token->data.tag.ns, type, 
 		treebuilder->context.element_stack[
 		treebuilder->context.current_node].node, 
+		token->data.tag.attributes, token->data.tag.n_attributes,
 		treebuilder->context.current_node);
 	if (err != HUBBUB_OK) {
 		hubbub_ns ns;
@@ -1877,6 +1918,8 @@ hubbub_error process_0presentational_in_body(hubbub_treebuilder *treebuilder,
 		 * we insert an entry for clone */
 		stack[furthest_block + 1].type = entry->details.type;
 		stack[furthest_block + 1].node = clone_appended;
+		hubbub_attribute *attrs = entry->details.attributes;
+		size_t n_attrs = entry->details.n_attributes;
 
 		/* 11 */
 		err = formatting_list_remove(treebuilder, entry,
@@ -1888,7 +1931,8 @@ hubbub_error process_0presentational_in_body(hubbub_treebuilder *treebuilder,
 
 		err = formatting_list_insert(treebuilder,
 				bookmark.prev, bookmark.next,
-				ons, otype, clone_appended, furthest_block + 1);
+				ons, otype, clone_appended, attrs, n_attrs,
+				furthest_block + 1);
 		if (err != HUBBUB_OK) {
 			treebuilder->tree_handler->unref_node(
 					treebuilder->tree_handler->ctx,
@@ -2268,7 +2312,8 @@ hubbub_error aa_clone_and_replace_entries(hubbub_treebuilder *treebuilder,
 	/* Replace formatting list entry for node with clone */
 	err = formatting_list_replace(treebuilder, element,
 			element->details.ns, element->details.type, 
-			clone, element->stack_index,
+			clone, element->details.attributes,
+			element->details.n_attributes, element->stack_index,
 			&ons, &otype, &onode, &oindex);
 	assert(err == HUBBUB_OK);
 
