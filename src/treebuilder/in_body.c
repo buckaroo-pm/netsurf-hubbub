@@ -72,6 +72,8 @@ static hubbub_error process_select_in_body(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token);
 static hubbub_error process_opt_in_body(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token);
+static hubbub_error process_rp_rt_in_body(hubbub_treebuilder *treebuilder,
+		const hubbub_token *token);
 static hubbub_error process_phrasing_in_body(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token);
 
@@ -398,7 +400,7 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 	} else if (type == OPTGROUP || type == OPTION) {
 		err = process_opt_in_body(treebuilder, token);
 	} else if (type == RP || type == RT) {
-		/** \todo ruby */
+		err = process_rp_rt_in_body(treebuilder, token);
 	} else if (type == MATH || type == SVG) {
 		hubbub_tag tag = token->data.tag;
 
@@ -1436,6 +1438,27 @@ hubbub_error process_opt_in_body(hubbub_treebuilder *treebuilder,
 	err = reconstruct_active_formatting_list(treebuilder);
 	if (err != HUBBUB_OK)
 		return err;
+
+	return insert_element(treebuilder, &token->data.tag, true);
+}
+
+/**
+ * Process a rp or rt start tag as if in "in body"
+ *
+ * \param treebuilder  The treebuilder instance
+ * \param token        The token to process
+ */
+hubbub_error process_rp_rt_in_body(hubbub_treebuilder *treebuilder,
+		const hubbub_token *token)
+{
+	if(element_in_scope(treebuilder, RUBY, NONE)) {
+		close_implied_end_tags(treebuilder, UNKNOWN);
+	}
+
+	if(treebuilder->context.element_stack[
+		treebuilder->context.current_node].type != RUBY) {
+		/** \todo parse error */
+	}
 
 	return insert_element(treebuilder, &token->data.tag, true);
 }

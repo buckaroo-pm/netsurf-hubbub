@@ -61,6 +61,8 @@ static const struct {
 	{ S("option"), OPTION },	{ S("output"), OUTPUT },
 	{ S("p"), P },			{ S("param"), PARAM },
 	{ S("plaintext"), PLAINTEXT },	{ S("pre"), PRE },
+	{ S("ruby"), RUBY },
+	{ S("rp"), RP },		{ S("rt"), RT },
 	{ S("script"), SCRIPT },	{ S("section"), SECTION },
 	{ S("select"), SELECT },	{ S("source"), SOURCE },
 	{ S("spacer"), SPACER },	{ S("style"), STYLE },
