@@ -4,46 +4,46 @@
 
 adoption01.dat		html5lib tests for the adoption agency algorithm
 adoption02.dat		html5lib tests for the adoption agency algorithm
-#after-after-body.dat	NA
-#after-after-frameset.dat	NA
-#after-body.dat		NA
-#comments01.dat		NA
+after-after-body.dat	html5lib Insertion Mode specific tests
+after-after-frameset.dat	html5lib Insertion Mode specific tests
+after-body.dat		html5lib Insertion Mode specific tests
+comments01.dat		html5lib treebuilder tests
 #doctype01.dat		NA
 #domjs-unsafe.dat	NA
-#entities01.dat		NA
-#entities02.dat		NA
+entities01.dat		html5lib tests for special characters
+entities02.dat		html5lib tests for special characters
 #html5test-com.dat	NA
-#inbody01.dat		NA
+inbody01.dat		html5lib Insertion Mode specific tests
 isindex.dat		html5lib treebuilder tests for isindex element
 #main-element.dat	NA
-#pending-spec-changes.dat	NA
+pending-spec-changes.dat	html5lib treebuilder tests
 #pending-spec-changes-plain-text-unsafe.dat	NA
 #plain-text-unsafe.dat	NA
-#README.md		NA
-#regression.dat		NA
+README.md		html5lib treebuilder tests
+regression.dat		html5lib treebuilder tests
 #scriptdata01.dat	NA
 #scripted/adoption01.dat		NA
 #scripted/ark.dat		NA
 #scripted/webkit01.dat		NA
-#tables01.dat		NA
+tables01.dat		html5lib treebuilder tests
 #template.dat		NA
 #tests10.dat		NA
-#tests11.dat		NA
-#tests12.dat		NA
+tests11.dat		html5lib treebuilder tests
+tests12.dat		html5lib treebuilder tests
 tests14.dat		html5lib treebuilder tests
-#tests15.dat		NA
+tests15.dat		html5lib treebuilder tests
 #tests16.dat		NA
-#tests17.dat		NA
-#tests18.dat		NA
+tests17.dat		html5lib treebuilder tests
+tests18.dat		html5lib treebuilder tests
 tests19.dat		html5lib treebuilder tests
 tests1.dat		html5lib treebuilder tests
 tests20.dat		html5lib treebuilder tests
 #tests21.dat		NA
-#tests22.dat		NA
-#tests23.dat		NA
-#tests24.dat		NA
-#tests25.dat		NA
-#tests26.dat		NA
+tests22.dat		html5lib treebuilder tests
+tests23.dat		html5lib treebuilder tests
+tests24.dat		html5lib treebuilder tests
+tests25.dat		html5lib treebuilder tests
+tests26.dat		html5lib treebuilder tests
 tests2.dat		html5lib treebuilder tests
 tests3.dat		html5lib treebuilder tests
 tests4.dat		html5lib treebuilder tests
@@ -52,7 +52,7 @@ tests6.dat		html5lib treebuilder tests
 tests7.dat		html5lib treebuilder tests
 tests8.dat		html5lib treebuilder tests
 tests9.dat		html5lib treebuilder tests
-#tests_innerHTML_1.dat	NA
-#tricky01.dat		NA
+tests_innerHTML_1.dat	html5lib treebuilder tests
+tricky01.dat		html5lib treebuilder tests
 #webkit01.dat		NA
-#webkit02.dat		NA
+webkit02.dat		html5lib treebuilder tests
