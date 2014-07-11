@@ -207,6 +207,11 @@ hubbub_error formatting_list_replace(hubbub_treebuilder *treebuilder,
 		uint32_t *ostack_index);
 void copy_attribute(hubbub_attribute *source,
 		hubbub_attribute *sink);
+bool is_mathml_text_integration (element_type type,
+		hubbub_ns ns);
+bool is_html_integration (element_type type,
+		hubbub_ns ns, hubbub_attribute *attrs,
+		size_t n_attrs);
 
 /* in_foreign_content.c */
 void adjust_mathml_attributes(hubbub_treebuilder *treebuilder, hubbub_tag *tag);

@@ -98,6 +98,8 @@ static const struct {
 	{ S("foreignobject"), FOREIGNOBJECT }
 };
 
+#undef S
+
 static bool is_form_associated(element_type type);
 
 /**
@@ -1621,6 +1623,72 @@ void copy_attribute(hubbub_attribute *source,
 	return;
 }
 
+#define S(s)            (uint8_t *) s, SLEN(s)
+
+/**
+ * Checks if the node with the given properties is
+ * a mathml text integration point
+ * \param type	The element type of the node
+ * \param ns	The namespace of the node
+ */
+
+bool is_mathml_text_integration (element_type type,
+		hubbub_ns ns) {
+
+	if(ns == HUBBUB_NS_MATHML && (
+				type == MI || type == MO ||
+				type == MN || type == MS ||
+				type == MTEXT)) {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Checks if the node with the given properties is
+ * a html integration point
+ * \param type		The element type of the node
+ * \param ns		The namespace of the node
+ * \param attrs		Pointer to the list of attributes
+ * \param n_attrs 	Number of attributes on the node
+ */
+bool is_html_integration (element_type type,
+		hubbub_ns ns, hubbub_attribute *attrs,
+		size_t n_attrs) {
+
+	if(ns == HUBBUB_NS_MATHML &&
+			type == ANNOTATION_XML) {
+
+		size_t i;
+		bool found = false;
+
+		for(i = 0;i < n_attrs; i++) {
+			/*search for the given attributes in O(n_attrs) time complexity*/
+			if(hubbub_string_match_ci(attrs[i].name.ptr,
+						attrs[i].name.len, S("encoding")) &&
+					(hubbub_string_match_ci(attrs[i].value.ptr,
+								attrs[i].value.len,
+								S("text/html")) ||
+					 hubbub_string_match_ci(attrs[i].value.ptr,
+						 attrs[i].value.len,
+						 S("application/xhtml+xml")))
+					) {
+				found = true;
+				break;
+			}
+		}
+
+		if(found) {
+			return true;
+		}
+	} else if(ns == HUBBUB_NS_SVG &&(
+				type == FOREIGNOBJECT ||
+				type == DESC ||
+				type == TITLE)) {
+		return true;
+	}
+	return false;
+}
 
 #ifndef NDEBUG
 
