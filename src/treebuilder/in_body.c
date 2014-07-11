@@ -115,6 +115,9 @@ static hubbub_error aa_remove_element_stack_item(
 static hubbub_error aa_clone_and_replace_entries(
 		hubbub_treebuilder *treebuilder,
 		formatting_list_entry *element);
+static hubbub_error add_attributes_stack(
+		hubbub_treebuilder *treebuilder,
+		const hubbub_token *token, uint32_t stack_index);
 
 
 /**
@@ -258,9 +261,9 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 
 	if (type == HTML) {
 		err = process_html_in_body(treebuilder, token);
-	} else if (type == BASE || type == COMMAND || type == LINK ||
-			type == META || type == NOFRAMES || type == SCRIPT ||
-			type == STYLE || type == TITLE) {
+	} else if (type == BASE || type == BASEFONT || type == BGSOUND ||
+			type == LINK || type == META || type == NOFRAMES ||
+			type == SCRIPT || type == STYLE || type == TITLE) {
 		/* Process as "in head" */
 		err = handle_in_head(treebuilder, token);
 	} else if (type == BODY) {
@@ -272,8 +275,9 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 			type == DATAGRID || type == DETAILS ||
 			type == DIALOG || type == DIR ||
 			type == DIV || type == DL || type == FIELDSET ||
-			type == FIGURE || type == FOOTER ||
-			type == HEADER || type == MENU || type == NAV ||
+			type == FIGCAPTION || type == FIGURE || type == FOOTER ||
+			type == HEADER || type == HGROUP || type == MAIN ||
+			type == MENU || type == NAV ||
 			type == OL || type == P || type == SECTION ||
 			type == SUMMARY || type == UL) {
 		err = process_container_in_body(treebuilder, token);
@@ -337,10 +341,9 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 				current_table(treebuilder)].tainted = false;
 			treebuilder->context.mode = IN_TABLE;
 		}
-	} else if (type == AREA || type == BASEFONT || 
-			type == BGSOUND || type == BR || 
+	} else if (type == AREA || type == BR ||
 			type == EMBED || type == IMG || type == INPUT ||
-			type == WBR) {
+			type == KEYGEN || type == WBR) {
 		err = reconstruct_active_formatting_list(treebuilder);
 		if (err != HUBBUB_OK)
 			return err;
@@ -352,7 +355,7 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 		size_t i;
 		bool found = 0;
 
-		for (i = 0; i < token->data.tag.n_attributes; i++) {
+		for (i = 0; i < token->data.tag.n_attributes && type == INPUT; i++) {
 			hubbub_attribute *attr = &token->data.tag.attributes[i];
 
 			if (hubbub_string_match_ci(attr->name.ptr, attr->name.len,
@@ -434,7 +437,8 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 			type == TD || type == TFOOT || type == TH ||
 			type == THEAD || type == TR) {
 		/** \todo parse error */
-	} else if (type == PARAM) {
+	} else if (type == PARAM || type == MENUITEM || type == SOURCE ||
+			type == TRACK) {
 		err = insert_element(treebuilder, &token->data.tag, false);
 		/** \todo ack sc flag */
 	} else {
@@ -468,12 +472,16 @@ hubbub_error process_end_tag(hubbub_treebuilder *treebuilder,
 		 * that wasn't ignored, reprocess this token */
 		err = process_0body_in_body(treebuilder);
 	} else if (type == ADDRESS || type == ARTICLE || type == ASIDE ||
-			type == BLOCKQUOTE || type == CENTER || type == DIR || 
-			type == DATAGRID || type == DIV || type == DL || 
-			type == FIELDSET || type == FOOTER || type == HEADER ||
-			type == LISTING || type == MENU || type == NAV ||
+			type == BLOCKQUOTE || type == BUTTON ||
+			type == CENTER || type == DETAILS ||
+			type == DIALOG || type == DIR ||
+			type == DIV || type == DL ||
+			type == FIELDSET || type == FIGCAPTION ||
+			type == FIGURE || type == FOOTER || type == HEADER ||
+			type == HGROUP || type == LISTING || type == MAIN ||
+			type == MENU || type == NAV ||
 			type == OL || type == PRE || type == SECTION ||
-			type == UL) {
+			type == SUMMARY || type == UL) {
 		err = process_0container_in_body(treebuilder, type);
 	} else if (type == FORM) {
 		err = process_0form_in_body(treebuilder);
@@ -490,7 +498,7 @@ hubbub_error process_end_tag(hubbub_treebuilder *treebuilder,
 			type == STRIKE || type == STRONG ||
 			type == TT || type == U) {
 		err = process_0presentational_in_body(treebuilder, type);
-	} else if (type == APPLET || type == BUTTON ||
+	} else if (type == APPLET ||
 			type == MARQUEE || type == OBJECT) {
 		err = process_0applet_button_marquee_object_in_body(
 				treebuilder, type);
@@ -503,8 +511,7 @@ hubbub_error process_end_tag(hubbub_treebuilder *treebuilder,
 			type == INPUT || type == ISINDEX ||
 			type == NOEMBED || type == NOFRAMES ||
 			type == PARAM || type == SELECT ||
-			type == SPACER || type == TABLE ||
-			type == TEXTAREA || type == WBR ||
+			type == TABLE || type == TEXTAREA || type == WBR ||
 			(treebuilder->context.enable_scripting && 
 					type == NOSCRIPT)) {
 		/** \todo parse error */
@@ -516,20 +523,20 @@ hubbub_error process_end_tag(hubbub_treebuilder *treebuilder,
 }
 
 /**
- * Process a html start tag as if in "in body"
+ * Append attributes to an element in the stack that are
+ * not already present
  *
  * \param treebuilder  The treebuilder instance
  * \param token        The token to process
+ * \param stack_index	Stack index of the element on which to append
  */
-hubbub_error process_html_in_body(hubbub_treebuilder *treebuilder,
-		const hubbub_token *token)
-{
-	/** \todo parse error */
+hubbub_error add_attributes_stack(hubbub_treebuilder *treebuilder,
+		const hubbub_token *token, uint32_t stack_index) {
 	size_t i;
         hubbub_attribute *attrs =
-                treebuilder->context.element_stack[0].attributes;
+                treebuilder->context.element_stack[stack_index].attributes;
         size_t n_attrs =
-		treebuilder->context.element_stack[0].n_attributes;
+		treebuilder->context.element_stack[stack_index].n_attributes;
 
 	size_t j;
         const hubbub_tag *tag = &token->data.tag;
@@ -565,9 +572,23 @@ hubbub_error process_html_in_body(hubbub_treebuilder *treebuilder,
 
 	return treebuilder->tree_handler->add_attributes(
 			treebuilder->tree_handler->ctx,
-			treebuilder->context.element_stack[0].node,
+			treebuilder->context.element_stack[stack_index].node,
 			&stack->attributes[stack->n_attributes] - dummy_len,
 			dummy_len);
+}
+
+/**
+ * Process a html start tag as if in "in body"
+ *
+ * \param treebuilder  The treebuilder instance
+ * \param token        The token to process
+ */
+hubbub_error process_html_in_body(hubbub_treebuilder *treebuilder,
+		const hubbub_token *token)
+{
+	/** \todo parse error */
+	return add_attributes_stack(treebuilder, token,
+			0);
 }
 
 /**
@@ -585,11 +606,9 @@ hubbub_error process_body_in_body(hubbub_treebuilder *treebuilder,
 			treebuilder->context.element_stack[1].type != BODY)
 		return HUBBUB_OK;
 
-	return treebuilder->tree_handler->add_attributes(
-			treebuilder->tree_handler->ctx,
-			treebuilder->context.element_stack[1].node,
-			token->data.tag.attributes,
-			token->data.tag.n_attributes);
+	treebuilder->context.frameset_ok = false;
+	return add_attributes_stack(treebuilder, token,
+			1);
 }
 
 /**

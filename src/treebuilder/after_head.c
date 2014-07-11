@@ -48,13 +48,15 @@ hubbub_error handle_after_head(hubbub_treebuilder *treebuilder,
 			/* Process as if "in body" */
 			err = handle_in_body(treebuilder, token);
 		} else if (type == BODY) {
+			treebuilder->context.frameset_ok = false;
 			handled = true;
 		} else if (type == FRAMESET) {
 			err = insert_element(treebuilder, &token->data.tag, 
 				true);
 			if (err == HUBBUB_OK)
 				treebuilder->context.mode = IN_FRAMESET;
-		} else if (type == BASE || type == LINK || type == META ||
+		} else if (type == BASE || type == BASEFONT || type == BGSOUND ||
+				type == LINK || type == META ||
 				type == NOFRAMES || type == SCRIPT ||
 				type == STYLE || type == TITLE) {
 			hubbub_ns ns;
