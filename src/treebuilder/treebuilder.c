@@ -1401,7 +1401,9 @@ hubbub_error formatting_list_append(hubbub_treebuilder *treebuilder,
 	formatting_list_entry *entry;
 	uint32_t n_elements = 0;
 	formatting_list_entry *remove_entry;
-	size_t i;
+	size_t i, j;
+
+	bool *hash_table = malloc(n_attrs * sizeof(bool));
 
 	for (entry = treebuilder->context.formatting_list_end;
 			entry != NULL; entry = entry->prev) {
@@ -1409,8 +1411,35 @@ hubbub_error formatting_list_append(hubbub_treebuilder *treebuilder,
 		if (is_scoping_element(entry->details.type))
 			break;
 
+		bool attrs_equal = (
+				n_attrs == entry->details.n_attributes);
+		for(i = 0; i < entry->details.n_attributes && attrs_equal; i++) {
+			memset(hash_table, 0, n_attrs * sizeof(bool));
+			bool found = false;
+			for(j = 0; j < n_attrs; j++) {
+				if(hubbub_string_match_ci(attrs[j].name.ptr,
+							attrs[j].name.len,
+							entry->details.attributes[i].name.ptr,
+							entry->details.attributes[i].name.len) &&
+						hubbub_string_match_ci(attrs[j].value.ptr,
+							attrs[j].value.len,
+							entry->details.attributes[i].value.ptr,
+							entry->details.attributes[i].value.len) &&
+						attrs[j].ns == entry->details.attributes[i].ns &&
+						hash_table[j] == false) {
+					hash_table[j] = true;
+					found = true;
+					break;
+				}
+			}
+			if(!found) {
+				attrs_equal = false;
+			}
+		}
+
 		if(entry->details.type == type &&
-				entry->details.ns == ns)
+				entry->details.ns == ns &&
+				attrs_equal)
 		{
 			remove_entry = entry;
 			n_elements += 1;
