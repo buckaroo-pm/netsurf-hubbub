@@ -54,5 +54,5 @@ tests8.dat		html5lib treebuilder tests
 tests9.dat		html5lib treebuilder tests
 tests_innerHTML_1.dat	html5lib treebuilder tests
 tricky01.dat		html5lib treebuilder tests
-#webkit01.dat		NA
+webkit01.dat		html5lib treebuilder tests
 webkit02.dat		html5lib treebuilder tests

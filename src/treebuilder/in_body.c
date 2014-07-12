@@ -785,8 +785,7 @@ hubbub_error process_dd_dt_li_in_body(hubbub_treebuilder *treebuilder,
 				(ntype == DD || ntype == DT)))
 			break;
 
-		if (!is_formatting_element(ntype) &&
-				!is_phrasing_element(ntype) &&
+		if (is_special_element(ntype) &&
 				ntype != ADDRESS && 
 				ntype != DIV &&
 				ntype != P)
@@ -794,10 +793,11 @@ hubbub_error process_dd_dt_li_in_body(hubbub_treebuilder *treebuilder,
 	}
 
 	/* If we found one, then pop all nodes up to and including it */
-	if (stack[node].type == LI || stack[node].type == DD ||
-			stack[node].type == DT) {
+	if((stack[node].type == LI && type == LI) ||
+				((stack[node].type == DT || stack[node].type == DD) &&
+				 (type == DD || type == DT))) {
 
-		close_implied_end_tags(treebuilder, type);
+		close_implied_end_tags(treebuilder, stack[node].type);
 		/* Check that we're only popping one node 
 		 * and emit a parse error if not */
 		if (treebuilder->context.current_node > node) {

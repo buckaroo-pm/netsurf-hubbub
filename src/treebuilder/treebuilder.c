@@ -966,8 +966,21 @@ void reset_insertion_mode(hubbub_treebuilder *treebuilder)
 
 		switch (stack[node].type) {
 		case SELECT:
+		{
 			/* fragment case */
-			break;
+			uint32_t ancestor;
+			for(ancestor = node - 1; ancestor > 0; ancestor --) {
+				if(stack[node].type == TEMPLATE) {
+					break;
+				}
+				if(stack[node].type == TABLE) {
+					treebuilder->context.mode = IN_CELL;
+					return;
+				}
+			}
+			treebuilder->context.mode = IN_SELECT;
+			return;
+		}
 		case TD:
 		case TH:
 			treebuilder->context.mode = IN_CELL;
@@ -985,26 +998,37 @@ void reset_insertion_mode(hubbub_treebuilder *treebuilder)
 			return;
 		case COLGROUP:
 			/* fragment case */
-			break;
+			treebuilder->context.mode = IN_COLUMN_GROUP;
+			return;
 		case TABLE:
 			treebuilder->context.mode = IN_TABLE;
 			return;
 		case HEAD:
 			/* fragment case */
-			break;
+			treebuilder->context.mode = IN_HEAD;
+			return;
 		case BODY:
 			treebuilder->context.mode = IN_BODY;
 			return;
 		case FRAMESET:
 			/* fragment case */
-			break;
+			treebuilder->context.mode = IN_FRAMESET;
+			return;
 		case HTML:
+		{
 			/* fragment case */
-			break;
+			if(treebuilder->context.head_element == NULL) {
+				treebuilder->context.mode = BEFORE_HEAD;
+			} else {
+				treebuilder->context.mode = AFTER_HEAD;
+			}
+		}
+			return;
 		default:
 			break;
 		}
 	}
+	return;
 }
 
 /**
