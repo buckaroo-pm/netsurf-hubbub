@@ -551,12 +551,13 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 				hubbub_ns ns;
 				element_type type;
 				void *node_iterator;
-				while(node_iterator !=stack[node].node) {
+				void *vnode = stack[node].node;
+				do{
 					element_stack_pop(treebuilder, &ns, &type, &node_iterator);
 					treebuilder->tree_handler->unref_node(
 							treebuilder->tree_handler->ctx,
 							node_iterator);
-				}
+				} while(node_iterator != vnode);
 				return HUBBUB_OK;
 			}
 			if(stack[node].ns == HUBBUB_NS_HTML) {

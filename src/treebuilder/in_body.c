@@ -325,7 +325,7 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 
 		treebuilder->context.frameset_ok = false;
 
-		err = parse_generic_rcdata(treebuilder, token, false);
+		err = parse_generic_rcdata(treebuilder, token, HUBBUB_CONTENT_MODEL_RAWTEXT);
 	} else if (type == TABLE) {
 		if(treebuilder->quirks_mode != HUBBUB_QUIRKS_MODE_FULL &&
 				element_in_scope(treebuilder, P,
@@ -384,7 +384,7 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 			type == NOSCRIPT)) {
 		if (type == IFRAME)
 			treebuilder->context.frameset_ok = false;
-		err = parse_generic_rcdata(treebuilder, token, false);
+		err = parse_generic_rcdata(treebuilder, token, HUBBUB_CONTENT_MODEL_RAWTEXT);
 	} else if (type == SELECT) {
 		err = process_select_in_body(treebuilder, token);
 		if (err != HUBBUB_OK)
@@ -1403,7 +1403,7 @@ hubbub_error process_textarea_in_body(hubbub_treebuilder *treebuilder,
 {
 	treebuilder->context.strip_leading_lr = true;
 	treebuilder->context.frameset_ok = false;
-	return parse_generic_rcdata(treebuilder, token, true);
+	return parse_generic_rcdata(treebuilder, token, HUBBUB_CONTENT_MODEL_RCDATA);
 }
 
 /**

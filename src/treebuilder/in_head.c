@@ -142,13 +142,13 @@ hubbub_error handle_in_head(hubbub_treebuilder *treebuilder,
 		} else if (type == META) {
 			err = process_meta_in_head(treebuilder, token);
 		} else if (type == TITLE) {
-			err = parse_generic_rcdata(treebuilder, token, true);
+			err = parse_generic_rcdata(treebuilder, token, HUBBUB_CONTENT_MODEL_RCDATA);
 		} else if (type == NOFRAMES || type == STYLE) {
-			err = parse_generic_rcdata(treebuilder, token, false);
+			err = parse_generic_rcdata(treebuilder, token, HUBBUB_CONTENT_MODEL_RAWTEXT);
 		} else if (type == NOSCRIPT) {
 			if (treebuilder->context.enable_scripting) {
 				err = parse_generic_rcdata(treebuilder, token, 
-						false);
+						HUBBUB_CONTENT_MODEL_RAWTEXT);
 			} else {
 				err = insert_element(treebuilder, 
 						&token->data.tag, true);
@@ -161,7 +161,7 @@ hubbub_error handle_in_head(hubbub_treebuilder *treebuilder,
 			/** \todo need to ensure that the client callback
 			 * sets the parser-inserted/already-executed script 
 			 * flags. */
-			err = parse_generic_rcdata(treebuilder, token, false);
+			err = parse_generic_rcdata(treebuilder, token, HUBBUB_CONTENT_MODEL_SCRIPTDATA);
 		} else if (type == HEAD) {
 			/** \todo parse error */
 		} else {

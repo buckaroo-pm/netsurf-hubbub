@@ -21,7 +21,7 @@ pending-spec-changes.dat	html5lib treebuilder tests
 #plain-text-unsafe.dat	NA
 README.md		html5lib treebuilder tests
 regression.dat		html5lib treebuilder tests
-#scriptdata01.dat	NA
+scriptdata01.dat	NA
 #scripted/adoption01.dat		NA
 #scripted/ark.dat		NA
 #scripted/webkit01.dat		NA

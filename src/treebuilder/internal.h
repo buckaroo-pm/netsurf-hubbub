@@ -146,7 +146,7 @@ hubbub_error process_in_table_text(
 hubbub_error process_comment_append(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token, void *parent);
 hubbub_error parse_generic_rcdata(hubbub_treebuilder *treebuilder,
-		const hubbub_token *token, bool rcdata);
+		const hubbub_token *token, hubbub_content_model content_model);
 
 uint32_t element_in_scope(hubbub_treebuilder *treebuilder,
 		element_type type, element_scope scope);

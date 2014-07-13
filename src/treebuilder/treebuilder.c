@@ -379,6 +379,14 @@ hubbub_error hubbub_treebuilder_token_handler(const hubbub_token *token,
 		}
 	}
 
+	hubbub_tokeniser_optparams params;
+	hubbub_error e;
+	params.process_cdata = (treebuilder->context.element_stack[
+			treebuilder->context.current_node].ns != HUBBUB_NS_HTML);
+	e = hubbub_tokeniser_setopt(treebuilder->tokeniser,                                                                                                                HUBBUB_TOKENISER_PROCESS_CDATA, &params);
+	UNUSED(e);
+	assert(e == HUBBUB_OK);
+
 	return err;
 }
 
@@ -523,11 +531,11 @@ hubbub_error process_comment_append(hubbub_treebuilder *treebuilder,
  *
  * \param treebuilder  The treebuilder instance
  * \param token        The current token
- * \param rcdata       True for RCDATA, false for CDATA
+ * \param content_model	The content-model in which the algorithm is being evoked
  * \return HUBBUB_OK on success, appropriate error otherwise
  */
 hubbub_error parse_generic_rcdata(hubbub_treebuilder *treebuilder,
-		const hubbub_token *token, bool rcdata)
+		const hubbub_token *token, hubbub_content_model content_model)
 {
 	hubbub_error error;
 	element_type type;
@@ -539,10 +547,10 @@ hubbub_error parse_generic_rcdata(hubbub_treebuilder *treebuilder,
 	if (error != HUBBUB_OK)
 		return error;
 
-	params.content_model.model = rcdata ? HUBBUB_CONTENT_MODEL_RCDATA
-					    : HUBBUB_CONTENT_MODEL_RAWTEXT;
+	params.content_model.model = content_model;
 	error = hubbub_tokeniser_setopt(treebuilder->tokeniser,
-				HUBBUB_TOKENISER_CONTENT_MODEL, &params);
+			HUBBUB_TOKENISER_CONTENT_MODEL, &params);
+
 	/* There is no way that setopt can fail. Ensure this. */
 	assert(error == HUBBUB_OK);
 
