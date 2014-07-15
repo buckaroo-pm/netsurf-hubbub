@@ -856,9 +856,9 @@ static void node_print(buf_t *buf, node_t *node, unsigned depth)
 			if (node->data.doctype.public_id) {
 				buf_add(buf, " \"");
 				buf_add(buf, node->data.doctype.public_id);
-				buf_add(buf, "\" ");
+				buf_add(buf, "\"");
 			} else {
-				buf_add(buf, "\"\" ");
+				buf_add(buf, " \"\"");
 			}
 			
 			if (node->data.doctype.system_id) {
@@ -866,7 +866,7 @@ static void node_print(buf_t *buf, node_t *node, unsigned depth)
 				buf_add(buf, node->data.doctype.system_id);
 				buf_add(buf, "\"");
 			} else {
-				buf_add(buf, "\"\"");
+				buf_add(buf, " \"\"");
 			}
 		}
 
