@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 				assert(hubbub_parser_completed(parser) == HUBBUB_OK);
 				state = READING_ERRORS;
 			} else {
-				size_t len = strlen(line);
+				size_t len = parse_strlen(line,sizeof line);
 
 				if (state == READING_DATA_AFTER_FIRST) {
 					assert(hubbub_parser_parse_chunk(parser,

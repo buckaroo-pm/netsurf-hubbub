@@ -12,12 +12,12 @@ comments01.dat		html5lib treebuilder tests
 #domjs-unsafe.dat	NA
 entities01.dat		html5lib tests for special characters
 entities02.dat		html5lib tests for special characters
-#html5test-com.dat	NA
+html5test-com.dat	html5lib treebuilder tests
 inbody01.dat		html5lib Insertion Mode specific tests
 isindex.dat		html5lib treebuilder tests for isindex element
-#main-element.dat	NA
+main-element.dat	html5lib tests
 pending-spec-changes.dat	html5lib treebuilder tests
-#pending-spec-changes-plain-text-unsafe.dat	NA
+pending-spec-changes-plain-text-unsafe.dat	html5lib tests for special characters
 #plain-text-unsafe.dat	NA
 README.md		html5lib treebuilder tests
 regression.dat		html5lib treebuilder tests
