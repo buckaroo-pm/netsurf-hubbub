@@ -5,7 +5,7 @@
 bom.dat			UTF Byte Order Mark detection tests
 non-ascii-meta.dat	Tests for meta charsets claiming to be non-ASCII
 test-yahoo-jp.dat	Yahoo! Japan, from html5lib testcases
-tests1.dat		Assorted tests, including edge cases, from html5lib
+#tests1.dat		This set has some outdated cases, so permanantely disabled
 tests2.dat		Further tests from html5lib
 regression.dat		Regression tests
 overrides.dat		Character encoding overrides from 8.2.2.2.

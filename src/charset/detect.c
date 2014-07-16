@@ -215,13 +215,13 @@ uint16_t hubbub_charset_scan_meta(const uint8_t *data, size_t len)
 	if (data == NULL)
 		return 0;
 
-	end = pos + min(512, len);
+	end = pos + min(1024, len);
 
 	/* 1. */
 	while (pos < end) {
 		/* a */
 		if (PEEK("<!--")) {
-			pos += SLEN("<!--");
+			pos += SLEN("<!");
 			ADVANCE("-->");
 		/* b */
 		} else if (PEEK("<meta")) {
@@ -303,6 +303,8 @@ uint16_t hubbub_charset_parse_attributes(const uint8_t **pos,
 	const uint8_t *value;
 	uint32_t namelen, valuelen;
 	uint16_t mibenum = 0;
+	bool got_pragma = false;
+	bool need_pragma = true;
 
 	if (pos == NULL || *pos == NULL || end == NULL)
 		return 0;
@@ -327,12 +329,23 @@ uint16_t hubbub_charset_parse_attributes(const uint8_t **pos,
 
 			mibenum = parserutils_charset_mibenum_from_name(
 					(const char *) value, valuelen);
+			need_pragma = false;
 		/* 5 */
+
 		} else if (namelen == SLEN("content") && valuelen > 0 &&
 				strncasecmp((const char *) name, "content",
-					SLEN("content")) == 0) {
+					SLEN("content")) == 0 &&
+				mibenum == 0) {
 			mibenum = hubbub_charset_parse_content(value,
 					valuelen);
+			need_pragma = true;
+		} else if (namelen == SLEN("http-equiv") && valuelen ==
+				SLEN("content-type") && strncasecmp((const char *)
+					value, "content-type",
+					SLEN("content-type")) == 0 &&
+				strncasecmp((const char *) name, "http-equiv",
+					SLEN("http-equiv")) == 0) {
+			got_pragma = true;
 		}
 
 		/* 6 */
@@ -349,12 +362,14 @@ uint16_t hubbub_charset_parse_attributes(const uint8_t **pos,
 		}
 
 		/* 7 */
-		if (mibenum != 0) {
+
+	}
+	if (mibenum != 0) {
+		if(got_pragma != false || need_pragma != true) {
 			/* confidence = tentative; */
 			return mibenum;
 		}
 	}
-
 	return 0;
 }
 
@@ -505,13 +520,6 @@ bool hubbub_charset_get_attribute(const uint8_t **data, const uint8_t *end,
 		return false;
 	}
 
-	/* 2. Invalid element open character */
-	if (*pos == '<') {
-		pos--;
-		*data = pos;
-		return false;
-	}
-
 	/* 3. End of element */
 	if (*pos == '>') {
 		*data = pos;
@@ -537,7 +545,7 @@ bool hubbub_charset_get_attribute(const uint8_t **data, const uint8_t *end,
 		}
 
 		/* c */
-		if (*pos == '/' || *pos == '<' || *pos == '>') {
+		if (*pos == '/' || *pos == '>') {
 			*data = pos;
 			return true;
 		}
@@ -631,7 +639,7 @@ bool hubbub_charset_get_attribute(const uint8_t **data, const uint8_t *end,
 	while (pos < end) {
 		/* 12. Extract unquoted value */
 		/* a */
-		if (ISSPACE(*pos) || *pos == '<' || *pos == '>') {
+		if (ISSPACE(*pos) || *pos == '>') {
 			*data = pos;
 			return true;
 		}

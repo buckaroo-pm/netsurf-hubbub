@@ -2,7 +2,7 @@
 #
 # Test			Description
 
-#tests1.dat		html5lib tests (part 1)
-#tests2.dat		html5lib tests (part 2)
+tests1.dat		html5lib tests (part 1)
+tests2.dat		html5lib tests (part 2)
 test-yahoo-jp.dat		html5lib tests (part 3)
 
