@@ -204,6 +204,10 @@ hubbub_error process_character(hubbub_treebuilder *treebuilder,
 	bool lr_flag = treebuilder->context.strip_leading_lr;
 	const uint8_t *p;
 
+	if(dummy.ptr[0] == '\0') {
+		return HUBBUB_OK;
+	}
+
 	err = reconstruct_active_formatting_list(treebuilder);
 	if (err != HUBBUB_OK)
 		return err;

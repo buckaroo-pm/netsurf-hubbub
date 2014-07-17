@@ -20,6 +20,12 @@
 #define S(s)		s, SLEN(s)
 
 /**
+ * UTF-8 encoding of U+FFFD REPLACEMENT CHARACTER
+ */
+static const uint8_t u_fffd[3] = { '\xEF', '\xBF', '\xBD' };
+static const hubbub_string u_fffd_str = { u_fffd, sizeof(u_fffd) };
+
+/**
  * Mapping table for case changes
  */
 typedef struct
@@ -436,9 +442,11 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 				is_mathml_text_integration(cur_node, cur_node_ns)) {
 			return process_as_in_secondary(treebuilder, token);
 		}
-
 		c = (token->data.character.ptr);
-		if(*c != '\t' && *c != '\r' && *c != ' ' && *c != '\n' && *c != '\f') {
+		if(c[0] == '\0') {
+			err = append_text(treebuilder, &u_fffd_str);
+			return err;
+		} else if(*c != '\t' && *c != '\r' && *c != ' ' && *c != '\n' && *c != '\f') {
 			treebuilder->context.frameset_ok = false;
 		}
 

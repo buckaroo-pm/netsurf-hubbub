@@ -32,6 +32,9 @@ hubbub_error handle_in_select(hubbub_treebuilder *treebuilder,
 
 	switch (token->type) {
 	case HUBBUB_TOKEN_CHARACTER:
+		if((token->data.character.ptr[0]) == '\0') {
+			break;
+		}
 		err = append_text(treebuilder, &token->data.character);
 		break;
 	case HUBBUB_TOKEN_COMMENT:
