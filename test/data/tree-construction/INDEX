@@ -8,8 +8,8 @@ after-after-body.dat	html5lib Insertion Mode specific tests
 after-after-frameset.dat	html5lib Insertion Mode specific tests
 after-body.dat		html5lib Insertion Mode specific tests
 comments01.dat		html5lib treebuilder tests
-#doctype01.dat		NA
-#domjs-unsafe.dat	NA
+doctype01.dat		html5lib tests for doctype tag
+domjs-unsafe.dat	html5lib tests for special characters
 entities01.dat		html5lib tests for special characters
 entities02.dat		html5lib tests for special characters
 html5test-com.dat	html5lib treebuilder tests
@@ -18,10 +18,10 @@ isindex.dat		html5lib treebuilder tests for isindex element
 main-element.dat	html5lib tests
 pending-spec-changes.dat	html5lib treebuilder tests
 pending-spec-changes-plain-text-unsafe.dat	html5lib tests for special characters
-#plain-text-unsafe.dat	NA
+plain-text-unsafe.dat	html5lib tests for special characters
 README.md		html5lib treebuilder tests
 regression.dat		html5lib treebuilder tests
-scriptdata01.dat	NA
+scriptdata01.dat	html5lib script related treebuilder tests
 #scripted/adoption01.dat		NA
 #scripted/ark.dat		NA
 #scripted/webkit01.dat		NA
@@ -32,13 +32,13 @@ tests11.dat		html5lib treebuilder tests
 tests12.dat		html5lib treebuilder tests
 tests14.dat		html5lib treebuilder tests
 tests15.dat		html5lib treebuilder tests
-#tests16.dat		NA
+tests16.dat		html5lib treebuilder tests
 tests17.dat		html5lib treebuilder tests
 tests18.dat		html5lib treebuilder tests
 tests19.dat		html5lib treebuilder tests
 tests1.dat		html5lib treebuilder tests
 tests20.dat		html5lib treebuilder tests
-#tests21.dat		NA
+tests21.dat		html5lib treebuilder tests
 tests22.dat		html5lib treebuilder tests
 tests23.dat		html5lib treebuilder tests
 tests24.dat		html5lib treebuilder tests
