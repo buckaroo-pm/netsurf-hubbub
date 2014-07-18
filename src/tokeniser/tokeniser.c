@@ -3255,7 +3255,7 @@ hubbub_error hubbub_tokeniser_handle_cdata_block(hubbub_tokeniser *tokeniser)
 	if (error != PARSERUTILS_OK) {
 		if (error == PARSERUTILS_EOF) {
 			tokeniser->state = STATE_DATA;
-			return emit_current_chars(tokeniser);
+			return HUBBUB_OK;
 		} else {
 			return hubbub_error_from_parserutils_error(error);
 		}
@@ -3263,17 +3263,18 @@ hubbub_error hubbub_tokeniser_handle_cdata_block(hubbub_tokeniser *tokeniser)
 
 	c = *cptr;
 
-	if (c == ']' && (tokeniser->context.match_cdata.end == 0 ||
-			tokeniser->context.match_cdata.end == 1)) {
+	if (c == ']' && (tokeniser->context.match_cdata.end >= 0)) {
 		tokeniser->context.pending += len;
 		tokeniser->context.match_cdata.end += len;
-	} else if (c == '>' && tokeniser->context.match_cdata.end == 2) {
+	} else if (c == '>' && tokeniser->context.match_cdata.end >= 2) {
 		/* Remove the previous two "]]" */
 		tokeniser->context.pending -= 2;
 		tokeniser->context.match_cdata.end  = 0;
 
 		/* Emit any pending characters */
-		emit_current_chars(tokeniser);
+		if(tokeniser->context.pending > 0) {
+			emit_current_chars(tokeniser);
+		}
 
 		/* Now move past the "]]>" bit */
 		parserutils_inputstream_advance(tokeniser->input, SLEN("]]>"));

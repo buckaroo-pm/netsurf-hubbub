@@ -1187,7 +1187,7 @@ hubbub_error process_hr_in_body(hubbub_treebuilder *treebuilder,
 	hubbub_error err;
 
 	if (element_in_scope(treebuilder, P, BUTTON_SCOPE)) {
-		err = process_0p_in_body(treebuilder);
+		err = close_p_in_body(treebuilder);
 		if (err != HUBBUB_OK)
 			return err;
 	}
@@ -2521,6 +2521,8 @@ hubbub_error process_0br_in_body(hubbub_treebuilder *treebuilder)
 	err = reconstruct_active_formatting_list(treebuilder);
 	if (err != HUBBUB_OK)
 		return err;
+
+	treebuilder->context.frameset_ok = false;
 
 	return insert_element(treebuilder, &tag, false);
 }
