@@ -34,6 +34,7 @@ typedef enum
 	AFTER_FRAMESET,
 	AFTER_AFTER_BODY,
 	AFTER_AFTER_FRAMESET,
+	IN_TEMPLATE,
 
 	GENERIC_RCDATA
 } insertion_mode;
@@ -85,6 +86,8 @@ hubbub_error handle_after_frameset(hubbub_treebuilder *treebuilder,
 hubbub_error handle_after_after_body(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token);
 hubbub_error handle_after_after_frameset(hubbub_treebuilder *treebuilder,
+		const hubbub_token *token);
+hubbub_error handle_in_template(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token);
 
 #endif

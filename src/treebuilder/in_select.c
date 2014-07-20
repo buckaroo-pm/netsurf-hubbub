@@ -100,7 +100,7 @@ hubbub_error handle_in_select(hubbub_treebuilder *treebuilder,
 
 			if (type != SELECT)
 				err = HUBBUB_REPROCESS;
-		} else if (type == SCRIPT) {
+		} else if (type == SCRIPT || type == TEMPLATE) {
 			err = handle_in_head(treebuilder, token);
 		} else {
 			/** \todo parse error */
@@ -153,6 +153,8 @@ hubbub_error handle_in_select(hubbub_treebuilder *treebuilder,
 				/* fragment case */
 				/** \todo parse error */
 			}
+		} else if (type == TEMPLATE) {
+			err = handle_in_head(treebuilder, token);
 		}
 	}
 		break;

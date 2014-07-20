@@ -19,7 +19,6 @@
 #include "utils/utils.h"
 #include "utils/string.h"
 
-
 /**
  * Process a meta tag as if "in head".
  *
@@ -164,6 +163,47 @@ hubbub_error handle_in_head(hubbub_treebuilder *treebuilder,
 			err = parse_generic_rcdata(treebuilder, token, HUBBUB_CONTENT_MODEL_SCRIPTDATA);
 		} else if (type == HEAD) {
 			/** \todo parse error */
+		} else if (type == TEMPLATE) {
+			err = insert_element(treebuilder, &token->data.tag,
+					true);
+			if (err != HUBBUB_OK)
+				return err;
+
+			/* Insert a Marker */
+			treebuilder->tree_handler->ref_node(
+					treebuilder->tree_handler->ctx,
+					treebuilder->context.element_stack[
+					treebuilder->context.current_node].node);
+
+			err = formatting_list_append(treebuilder, token->data.tag.ns, type,
+					treebuilder->context.element_stack[
+					treebuilder->context.current_node].node,
+					token->data.tag.attributes, token->data.tag.n_attributes,
+					treebuilder->context.current_node);
+			if (err != HUBBUB_OK) {
+				hubbub_ns ns;
+				element_type type;
+				void *node;
+				remove_node_from_dom(treebuilder,
+						treebuilder->context.element_stack[
+						treebuilder->context.current_node].node);
+
+				element_stack_pop(treebuilder, &ns, &type, &node);
+
+				/* Unref twice (once for stack, once for formatting list) */
+				treebuilder->tree_handler->unref_node(
+						treebuilder->tree_handler->ctx, node);
+
+				treebuilder->tree_handler->unref_node(
+						treebuilder->tree_handler->ctx, node);
+
+				return err;
+			}
+
+			treebuilder->context.frameset_ok = false;
+			treebuilder->context.mode = IN_TEMPLATE;
+
+			err = template_stack_push(treebuilder, IN_TEMPLATE);
 		} else {
 			err = HUBBUB_REPROCESS;
 		}
@@ -176,9 +216,29 @@ hubbub_error handle_in_head(hubbub_treebuilder *treebuilder,
 
 		if (type == HEAD) {
 			handled = true;
+		} else if(type == TEMPLATE) {
+			/**todo parse error */
+			if(!template_in_stack(treebuilder)) {
+				/** \todo parse error */
+				break;
+			}
+			insertion_mode mode;
+			close_implied_end_tags_thorough(treebuilder);
+
+			err = element_stack_pop_until(treebuilder,
+					TEMPLATE);
+			if (err != HUBBUB_OK)
+				return err;
+
+			clear_active_formatting_list_to_marker(
+					treebuilder);
+			err = template_stack_pop (treebuilder, &mode);
+			reset_insertion_mode (treebuilder);
 		} else if (type == HTML || type == BODY || type == BR) {
 			err = HUBBUB_REPROCESS;
-		} /** \todo parse error */
+		} else {
+			/** \todo parse error */
+		}
 	}
 		break;
 	case HUBBUB_TOKEN_EOF:

@@ -53,6 +53,8 @@ hubbub_error handle_in_column_group(hubbub_treebuilder *treebuilder,
 					false);
 
 			/** \todo ack sc flag */
+		} else if(type == TEMPLATE) {
+			err = handle_in_head(treebuilder, token);
 		} else {
 			err = HUBBUB_REPROCESS;
 		}
@@ -68,6 +70,8 @@ hubbub_error handle_in_column_group(hubbub_treebuilder *treebuilder,
 			handled = true;
 		} else if (type == COL) {
 			/** \todo parse error */
+		} else if(type == TEMPLATE) {
+			err = handle_in_head(treebuilder, token);
 		} else {
 			err = HUBBUB_REPROCESS;
 		}

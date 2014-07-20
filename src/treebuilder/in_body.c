@@ -164,6 +164,12 @@ hubbub_error handle_in_body(hubbub_treebuilder *treebuilder,
 		err = process_end_tag(treebuilder, token);
 		break;
 	case HUBBUB_TOKEN_EOF:
+		if (treebuilder->context.current_template_mode > -1) {
+			treebuilder->context.mode =
+				IN_TEMPLATE;
+			err = HUBBUB_REPROCESS;
+			break;
+		}
 		for (i = treebuilder->context.current_node; 
 				i > 0; i--) {
 			element_type type = 
@@ -211,7 +217,6 @@ hubbub_error process_character(hubbub_treebuilder *treebuilder,
 	err = reconstruct_active_formatting_list(treebuilder);
 	if (err != HUBBUB_OK)
 		return err;
-
 	if (treebuilder->context.strip_leading_lr) {
 		const uint8_t *str = dummy.ptr;
 
@@ -267,7 +272,8 @@ hubbub_error process_start_tag(hubbub_treebuilder *treebuilder,
 		err = process_html_in_body(treebuilder, token);
 	} else if (type == BASE || type == BASEFONT || type == BGSOUND ||
 			type == LINK || type == META || type == NOFRAMES ||
-			type == SCRIPT || type == STYLE || type == TITLE) {
+			type == SCRIPT || type == STYLE || type == TEMPLATE
+			|| type == TITLE) {
 		/* Process as "in head" */
 		err = handle_in_head(treebuilder, token);
 	} else if (type == BODY) {
@@ -519,6 +525,8 @@ hubbub_error process_end_tag(hubbub_treebuilder *treebuilder,
 			(treebuilder->context.enable_scripting && 
 					type == NOSCRIPT)) {
 		/** \todo parse error */
+	} else if (type == TEMPLATE) {
+		err = handle_in_head(treebuilder, token);
 	} else {
 		err = process_0generic_in_body(treebuilder, type);
 	}
@@ -591,6 +599,9 @@ hubbub_error process_html_in_body(hubbub_treebuilder *treebuilder,
 		const hubbub_token *token)
 {
 	/** \todo parse error */
+	if(template_in_stack(treebuilder))
+		return HUBBUB_OK;
+
 	return add_attributes_stack(treebuilder, token,
 			0);
 }
@@ -607,7 +618,8 @@ hubbub_error process_body_in_body(hubbub_treebuilder *treebuilder,
 	/** \todo parse error */
 
 	if (treebuilder->context.current_node < 1 || 
-			treebuilder->context.element_stack[1].type != BODY)
+			treebuilder->context.element_stack[1].type != BODY ||
+			template_in_stack(treebuilder))
 		return HUBBUB_OK;
 
 	treebuilder->context.frameset_ok = false;
@@ -721,18 +733,10 @@ hubbub_error process_form_in_body(hubbub_treebuilder *treebuilder,
 {
 	hubbub_error err;
 
-	element_context *stack = treebuilder->context.element_stack;
-	bool template_in_stack = false;
-	uint32_t n;
-	for (n = treebuilder->context.current_node;
-			n > 0; n--) {
-		if(stack[n].type == TEMPLATE) {
-			template_in_stack = true;
-			break;
-		}
-	}
+	bool in_stack = template_in_stack(treebuilder);
+
 	if (treebuilder->context.form_element != NULL &&
-			template_in_stack == false) {
+			in_stack == false) {
 		/** \todo parse error */
 	} else {
 		if (element_in_scope(treebuilder, P, BUTTON_SCOPE)) {
@@ -752,7 +756,7 @@ hubbub_error process_form_in_body(hubbub_treebuilder *treebuilder,
 			treebuilder->context.element_stack[
 			treebuilder->context.current_node].node);
 
-		if(template_in_stack == false) {
+		if(in_stack == false) {
 			treebuilder->context.form_element =
 				treebuilder->context.element_stack[
 				treebuilder->context.current_node].node;
@@ -1236,26 +1240,18 @@ hubbub_error process_isindex_in_body(hubbub_treebuilder *treebuilder,
 {
 	hubbub_error err;
 	hubbub_token dummy;
-	element_context *stack = treebuilder->context.element_stack;
 	hubbub_attribute *action = NULL;
 	hubbub_attribute *prompt = NULL;
 	hubbub_attribute *attrs = NULL;
 	size_t n_attrs = 0;
-	uint32_t n;
-	bool template_in_stack = false;
+	bool in_stack = template_in_stack(
+			treebuilder);
 
 	hubbub_ns ns;
 	void *node;
 	element_type o_type;
 
-	for (n = treebuilder->context.current_node;
-			n > 0; n--) {
-		if(stack[n].type == TEMPLATE) {
-			template_in_stack = true;
-			break;
-		}
-	}
-	if (template_in_stack == false &&
+	if (in_stack == false &&
 			treebuilder->context.form_element != NULL)
 		return HUBBUB_OK;
 
@@ -1592,6 +1588,22 @@ hubbub_error process_0form_in_body(hubbub_treebuilder *treebuilder)
 	void *node = treebuilder->context.form_element;
 	uint32_t idx = 0;
 
+	if(template_in_stack (treebuilder)) {
+		if(!element_in_scope(treebuilder, FORM, NONE)) {
+			/** \todo parse error */
+		} else {
+			close_implied_end_tags(treebuilder,
+					UNKNOWN);
+
+			if(current_node(treebuilder) != FORM) {
+				/** \todo parse error */
+			}
+			element_stack_pop_until(treebuilder,
+					FORM);
+		}
+		return HUBBUB_OK;
+	}
+
 	if (treebuilder->context.form_element != NULL)
 		treebuilder->tree_handler->unref_node(
 				treebuilder->tree_handler->ctx,
@@ -1600,8 +1612,7 @@ hubbub_error process_0form_in_body(hubbub_treebuilder *treebuilder)
 
 	idx = element_in_scope(treebuilder, FORM, NONE);
 
-	if (idx == 0 || node == NULL || 
-			treebuilder->context.element_stack[idx].node != node) {
+	if (idx == 0 || node == NULL) {
 		/** \todo parse error */
 	} else {
 		hubbub_ns ns;
@@ -1616,7 +1627,7 @@ hubbub_error process_0form_in_body(hubbub_treebuilder *treebuilder)
 			/** \todo parse error */
 		}
 
-		element_stack_remove(treebuilder, idx, 
+		element_stack_remove(treebuilder, idx,
 				&ns, &otype, &onode);
 
 		treebuilder->tree_handler->unref_node(

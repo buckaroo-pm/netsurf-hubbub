@@ -6,6 +6,6 @@ DIR_SOURCES := treebuilder.c \
 		in_cell.c in_select.c in_select_in_table.c \
 		in_foreign_content.c after_body.c in_frameset.c \
 		after_frameset.c after_after_body.c after_after_frameset.c \
-		generic_rcdata.c
+		in_template.c generic_rcdata.c
 
 include $(NSBUILD)/Makefile.subdir

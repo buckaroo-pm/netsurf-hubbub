@@ -166,6 +166,7 @@ hubbub_error insert_element(hubbub_treebuilder *treebuilder,
 		const hubbub_tag *tag_name, bool push);
 void close_implied_end_tags(hubbub_treebuilder *treebuilder, 
 		element_type except);
+void close_implied_end_tags_thorough(hubbub_treebuilder *treebuilder);
 void reset_insertion_mode(hubbub_treebuilder *treebuilder);
 hubbub_error append_text(hubbub_treebuilder *treebuilder,
 		const hubbub_string *string);
@@ -224,6 +225,7 @@ bool is_mathml_text_integration (element_type type,
 bool is_html_integration (element_type type,
 		hubbub_ns ns, hubbub_attribute *attrs,
 		size_t n_attrs);
+bool template_in_stack (hubbub_treebuilder *treebuilder);
 
 /* in_foreign_content.c */
 void adjust_mathml_attributes(hubbub_treebuilder *treebuilder, hubbub_tag *tag);

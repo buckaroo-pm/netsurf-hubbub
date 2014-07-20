@@ -24,7 +24,8 @@ static void table_clear_stack(hubbub_treebuilder *treebuilder)
 	element_type cur_node = current_node(treebuilder);
 
 	while (cur_node != TBODY && cur_node != TFOOT &&
-			cur_node != THEAD && cur_node != HTML) {
+			cur_node != THEAD && cur_node != HTML &&
+			cur_node != TEMPLATE) {
 		hubbub_ns ns;
 		element_type type;
 		void *node;

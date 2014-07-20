@@ -389,6 +389,9 @@ hubbub_error hubbub_treebuilder_token_handler(const hubbub_token *token,
 		mode(AFTER_AFTER_FRAMESET)
 			err = handle_after_after_frameset(treebuilder, token);
 			break;
+		mode(IN_TEMPLATE)
+			err = handle_in_template(treebuilder, token);
+			break;
 		mode(GENERIC_RCDATA)
 			err = handle_generic_rcdata(treebuilder, token);
 			break;
@@ -934,11 +937,11 @@ hubbub_error insert_element(hubbub_treebuilder *treebuilder,
 }
 
 /**
- * Close implied end tags
+ * close implied end tags
  *
- * \param treebuilder  The treebuilder instance
- * \param except       Tag type to exclude from processing [DD,DT,LI,OPTION,
- *                     OPTGROUP,P,RP,RT], UNKNOWN to exclude nothing
+ * \param treebuilder  the treebuilder instance
+ * \param except       tag type to exclude from processing [dd,dt,li,option,
+ *                     optgroup,p,rp,rt], unknown to exclude nothing
  */
 void close_implied_end_tags(hubbub_treebuilder *treebuilder,
 		element_type except)
@@ -957,6 +960,39 @@ void close_implied_end_tags(hubbub_treebuilder *treebuilder,
 
 		if (except != UNKNOWN && type == except)
 			break;
+
+		element_stack_pop(treebuilder, &ns, &otype, &node);
+
+		treebuilder->tree_handler->unref_node(
+				treebuilder->tree_handler->ctx,
+				node);
+
+		type = treebuilder->context.element_stack[
+				treebuilder->context.current_node].type;
+	}
+}
+
+/**
+ * close implied end tags "thoroughly"
+ *
+ * \param treebuilder  the treebuilder instance
+ */
+void close_implied_end_tags_thorough(hubbub_treebuilder *treebuilder)
+{
+	element_type type;
+
+	type = treebuilder->context.element_stack[
+			treebuilder->context.current_node].type;
+
+	while(type == CAPTION || type == COLGROUP || type == DD ||
+			type == DT || type == LI || type == OPTION ||
+			type == OPTGROUP || type == P || type == RP ||
+			type == RT || type == TBODY || type == TD ||
+			type ==TFOOT || type == TH ||
+			type == THEAD || type == TR) {
+		hubbub_ns ns;
+		element_type otype;
+		void *node;
 
 		element_stack_pop(treebuilder, &ns, &otype, &node);
 
@@ -1026,6 +1062,11 @@ void reset_insertion_mode(hubbub_treebuilder *treebuilder)
 			return;
 		case TABLE:
 			treebuilder->context.mode = IN_TABLE;
+			return;
+		case TEMPLATE:
+			treebuilder->context.mode =
+				treebuilder->context.template_stack[
+					treebuilder->context.current_template_mode];
 			return;
 		case HEAD:
 			/* fragment case */
@@ -1820,6 +1861,23 @@ bool is_html_integration (element_type type,
 	return false;
 }
 
+/**
+ * Check whether the stack of open elements has a template element
+ *
+ * \param treebuilder  The treebuilder instance
+ */
+bool template_in_stack (hubbub_treebuilder *treebuilder) {
+	uint32_t i;
+	element_context* stack =
+		treebuilder->context.element_stack;
+	for(i = treebuilder->context.current_node; i > 0;
+			i--) {
+		if(stack[i].type == TEMPLATE) {
+			return true;
+		}
+	}
+	return false;
+}
 #ifndef NDEBUG
 
 /**

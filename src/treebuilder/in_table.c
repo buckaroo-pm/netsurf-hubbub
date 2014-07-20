@@ -26,7 +26,7 @@ static inline void clear_stack_table_context(hubbub_treebuilder *treebuilder)
 	element_type type = current_node(treebuilder);
 	void *node;
 
-	while (type != TABLE && type != HTML) {
+	while (type != TABLE && type != HTML && type != TEMPLATE) {
 		element_stack_pop(treebuilder, &ns, &type, &node);
 
 		treebuilder->tree_handler->unref_node(
@@ -208,23 +208,16 @@ hubbub_error handle_in_table(hubbub_treebuilder *treebuilder,
 			reset_insertion_mode(treebuilder);
 
 			err = HUBBUB_REPROCESS;
-		} else if (type == STYLE || type == SCRIPT) {
+		} else if (type == STYLE || type == SCRIPT ||
+				type == TEMPLATE) {
 			err = handle_in_head(treebuilder, token);
 		} else if (type == INPUT) {
 			err = process_input_in_table(treebuilder, token);
 			handled = (err == HUBBUB_OK);
 		} else if(type == FORM) {
-			element_context *stack = treebuilder->context.element_stack;
-			bool template_in_stack = false;
-			uint32_t n;
-			for (n = treebuilder->context.current_node;
-					n > 0; n--) {
-				if(stack[n].type == TEMPLATE) {
-					template_in_stack = true;
-					break;
-				}
-			}
-			if(template_in_stack == true ||
+			bool in_stack = template_in_stack(treebuilder);
+
+			if(in_stack == true ||
 					treebuilder->context.form_element != NULL ) {
 				/* ignore the token*/
 				break;
@@ -268,6 +261,8 @@ hubbub_error handle_in_table(hubbub_treebuilder *treebuilder,
 				type == TBODY || type == TD || type == TFOOT ||
 				type == TH || type == THEAD || type == TR) {
 			/** \todo parse error */
+		} else if (type == TEMPLATE) {
+			err = handle_in_head(treebuilder, token);
 		} else {
 			handled = false;
 		}

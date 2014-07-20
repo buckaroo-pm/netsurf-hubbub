@@ -58,7 +58,8 @@ hubbub_error handle_after_head(hubbub_treebuilder *treebuilder,
 		} else if (type == BASE || type == BASEFONT || type == BGSOUND ||
 				type == LINK || type == META ||
 				type == NOFRAMES || type == SCRIPT ||
-				type == STYLE || type == TITLE) {
+				type == STYLE || type == TEMPLATE ||
+				type == TITLE) {
 			hubbub_ns ns;
 			element_type otype;
 			void *node;
@@ -98,6 +99,8 @@ hubbub_error handle_after_head(hubbub_treebuilder *treebuilder,
 
 		if (type == HTML || type == BODY || type == BR) {
 			err = HUBBUB_REPROCESS;
+		} else if(type == TEMPLATE) {
+			err = handle_in_head(treebuilder, token);
 		} else {
 			/** \todo parse error */
 		}
