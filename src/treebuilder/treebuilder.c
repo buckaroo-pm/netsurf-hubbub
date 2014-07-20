@@ -138,6 +138,16 @@ hubbub_error hubbub_treebuilder_create(hubbub_tokeniser *tokeniser,
 		free(tb);
 		return HUBBUB_NOMEM;
 	}
+
+	tb->context.template_stack = malloc(
+			TEMPLATE_STACK_CHUNK * sizeof(insertion_mode));
+	if (tb->context.template_stack == NULL) {
+		free(tb);
+		return HUBBUB_NOMEM;
+	}
+	tb->context.template_stack_alloc = TEMPLATE_STACK_CHUNK;
+	tb->context.current_template_mode = -1;
+
 	tb->context.stack_alloc = ELEMENT_STACK_CHUNK;
 	/* We rely on HTML not being equal to zero to determine
 	 * if the first item in the stack is in use. Assert this here. */
@@ -160,6 +170,7 @@ hubbub_error hubbub_treebuilder_create(hubbub_tokeniser *tokeniser,
 			HUBBUB_TOKENISER_TOKEN_HANDLER, &tokparams);
 	if (error != HUBBUB_OK) {
 		free(tb->context.element_stack);
+		free(tb->context.template_stack);
 		free(tb);
 		return error;
 	}
@@ -216,15 +227,20 @@ hubbub_error hubbub_treebuilder_destroy(hubbub_treebuilder *treebuilder)
 			treebuilder->tree_handler->unref_node(
 				treebuilder->tree_handler->ctx,
 				treebuilder->context.element_stack[n].node);
+
 		}
 		if (treebuilder->context.element_stack[0].type == HTML) {
 			treebuilder->tree_handler->unref_node(
 				treebuilder->tree_handler->ctx,
 				treebuilder->context.element_stack[0].node);
 		}
+		/*\todo free attributes?*/
 	}
 	free(treebuilder->context.element_stack);
 	treebuilder->context.element_stack = NULL;
+
+	free(treebuilder->context.template_stack);
+	treebuilder->context.template_stack = NULL;
 
 	for (entry = treebuilder->context.formatting_list; entry != NULL;
 			entry = next) {
@@ -235,7 +251,7 @@ hubbub_error hubbub_treebuilder_destroy(hubbub_treebuilder *treebuilder)
 					treebuilder->tree_handler->ctx,
 					entry->details.node);
 		}
-
+		/*\todo free attributes? */
 		free(entry);
 	}
 
@@ -1286,6 +1302,59 @@ hubbub_error element_stack_pop(hubbub_treebuilder *treebuilder,
 
 	treebuilder->context.current_node = slot - 1;
 	assert((signed) treebuilder->context.current_node >= 0);
+
+	return HUBBUB_OK;
+}
+
+/**
+ * Push an element onto the stack of Template Insertion Modes
+ *
+ * \param treebuilder	The treebuilder instance containing the stack
+ * \param mode		The insertion mode being pushed
+ * \return HUBBUB_OK on success, appropriate error otherwise.
+ */
+hubbub_error template_stack_push(hubbub_treebuilder *treebuilder,
+		insertion_mode mode)
+{
+	int32_t slot = treebuilder->context.current_template_mode + 1;
+
+	if (slot >= (signed)treebuilder->context.template_stack_alloc) {
+		insertion_mode *temp = realloc(
+				treebuilder->context.template_stack,
+				(treebuilder->context.template_stack_alloc +
+					TEMPLATE_STACK_CHUNK) *
+					sizeof(insertion_mode));
+
+		if (temp == NULL)
+			return HUBBUB_NOMEM;
+
+		treebuilder->context.template_stack = temp;
+		treebuilder->context.template_stack_alloc += TEMPLATE_STACK_CHUNK;
+	}
+
+	treebuilder->context.template_stack[slot] = mode;
+
+	treebuilder->context.current_template_mode = slot;
+
+	return HUBBUB_OK;
+}
+
+/**
+ * Pop an element off the stack of Template Insertion Modes
+ *
+ * \param ns           Pointer to location to receive insertion mode
+ * \return HUBBUB_OK on success, appropriate error otherwise.
+ */
+hubbub_error template_stack_pop(hubbub_treebuilder *treebuilder,
+		insertion_mode *mode)
+{
+	int32_t stack =
+		treebuilder->context.current_template_mode;
+	*mode = treebuilder->context.template_stack[stack];
+
+	treebuilder->context.current_template_mode -= 1;
+
+	assert( treebuilder->context.current_template_mode >= -1);
 
 	return HUBBUB_OK;
 }

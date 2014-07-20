@@ -57,6 +57,7 @@ typedef struct element_context
 					 * instead of the current node." */
 
 	void *node;			/**< Node pointer */
+
 	hubbub_attribute *attributes;	/**< The attributes associated with
 					  * element*/
 	size_t n_attributes;		/**< Number of attributes associated
@@ -83,6 +84,11 @@ typedef struct hubbub_treebuilder_context
 {
 	insertion_mode mode;		/**< The current insertion mode */
 	insertion_mode second_mode;	/**< The secondary insertion mode */
+
+#define TEMPLATE_STACK_CHUNK 32
+	insertion_mode *template_stack;	/**< The stack of Template insertion modes*/
+	int32_t current_template_mode;	/**< The index of template_stack's top element*/
+	uint32_t template_stack_alloc;	/**< Number of stack slots allocated */
 
 #define ELEMENT_STACK_CHUNK 128
 	element_context *element_stack;	/**< Stack of open elements */
@@ -178,6 +184,12 @@ hubbub_error element_stack_push(hubbub_treebuilder *treebuilder,
 		hubbub_attribute *attrs, size_t n_attrs);
 hubbub_error element_stack_pop(hubbub_treebuilder *treebuilder,
 		hubbub_ns *ns, element_type *type, void **node);
+
+hubbub_error template_stack_push(hubbub_treebuilder *treebuilder,
+		insertion_mode mode);
+hubbub_error template_stack_pop(hubbub_treebuilder *treebuilder,
+		insertion_mode *mode);
+
 hubbub_error element_stack_pop_until(hubbub_treebuilder *treebuilder,
 		element_type type);
 hubbub_error element_stack_remove(hubbub_treebuilder *treebuilder, 

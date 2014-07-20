@@ -3263,7 +3263,7 @@ hubbub_error hubbub_tokeniser_handle_cdata_block(hubbub_tokeniser *tokeniser)
 
 	c = *cptr;
 
-	if (c == ']' && (tokeniser->context.match_cdata.end >= 0)) {
+	if (c == ']') {
 		tokeniser->context.pending += len;
 		tokeniser->context.match_cdata.end += len;
 	} else if (c == '>' && tokeniser->context.match_cdata.end >= 2) {
