@@ -175,7 +175,7 @@ hubbub_error complete_script(hubbub_treebuilder *treebuilder);
 element_type element_type_from_name(hubbub_treebuilder *treebuilder,
 		const hubbub_string *tag_name);
 
-bool is_special_element(element_type type);
+bool is_special_element(element_type type, hubbub_ns ns);
 bool is_scoping_element(element_type type);
 bool is_formatting_element(element_type type);
 bool is_phrasing_element(element_type type);

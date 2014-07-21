@@ -785,7 +785,7 @@ hubbub_error process_dd_dt_li_in_body(hubbub_treebuilder *treebuilder,
 	/* Find last LI/(DD,DT) on stack, if any */
 	for (node = treebuilder->context.current_node; node > 0; node--) {
 		element_type ntype = stack[node].type;
-
+		hubbub_ns ns = stack[node].ns;
 		if (type == LI && ntype == LI)
 			break;
 
@@ -793,7 +793,7 @@ hubbub_error process_dd_dt_li_in_body(hubbub_treebuilder *treebuilder,
 				(ntype == DD || ntype == DT)))
 			break;
 
-		if (is_special_element(ntype) &&
+		if (is_special_element(ntype, ns) &&
 				ntype != ADDRESS && 
 				ntype != DIV &&
 				ntype != P)
@@ -1819,6 +1819,29 @@ hubbub_error process_0presentational_in_body(hubbub_treebuilder *treebuilder,
 		element_type type)
 {
 	hubbub_error err;
+	formatting_list_entry *entry;
+	bool found = false;
+
+	for (entry = treebuilder->context.formatting_list_end;
+			entry != NULL; entry = entry->prev) {
+		if(entry->stack_index ==
+				treebuilder->context.current_node) {
+			found = 1;
+			break;
+		}
+	}
+	if ((!found) && current_node(treebuilder) == type) {
+		hubbub_ns ns;
+		element_type otype;
+		void *node;
+
+		element_stack_pop(treebuilder, &ns, &otype, &node);
+
+		treebuilder->tree_handler->unref_node(
+				treebuilder->tree_handler->ctx,
+				node);
+		return HUBBUB_OK;
+	}
 
 	/* Welcome to the adoption agency */
 	uint32_t counter = 0;
@@ -2102,8 +2125,8 @@ hubbub_error aa_find_furthest_block(hubbub_treebuilder *treebuilder,
 
 	for (fb = fe_index + 1; fb <= treebuilder->context.current_node; fb++) {
 		element_type type = treebuilder->context.element_stack[fb].type;
-
-		if (!(is_phrasing_element(type) || is_formatting_element(type)))
+		hubbub_ns ns = treebuilder->context.element_stack[fb].ns;
+		if (is_special_element(type, ns))
 			break;
 	}
 
@@ -2579,7 +2602,8 @@ hubbub_error process_0generic_in_body(hubbub_treebuilder *treebuilder,
 			}
 
 			break;
-		} else if (is_special_element(stack[node].type)) {
+		} else if (is_special_element(stack[node].type,
+					stack[node].ns)) {
 			/** \todo parse error */
 			break;
 		}

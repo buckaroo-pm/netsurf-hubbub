@@ -1192,11 +1192,13 @@ element_type element_type_from_name(hubbub_treebuilder *treebuilder,
  * \param type  Node type to consider
  * \return True iff node is a special element
  */
-bool is_special_element(element_type type)
+bool is_special_element(element_type type, hubbub_ns ns)
 {
-	return (type <= TH) ||
-		(type >= MI && type <= ANNOTATION_XML) ||
-		(type >=FOREIGNOBJECT && type <= DESC);
+	return ((ns == HUBBUB_NS_HTML)&&(type <= TH)) ||
+		(ns == HUBBUB_NS_MATHML &&
+		 (type >= MI && type <= ANNOTATION_XML)) ||
+		(ns == HUBBUB_NS_SVG &&
+		 (type >=FOREIGNOBJECT && type <= DESC));
 }
 
 /**
