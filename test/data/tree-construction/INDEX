@@ -1,4 +1,4 @@
-# Index file for tokeniser tests
+# Index file for treebuilder tests
 #
 # Test			Description
 
@@ -27,7 +27,7 @@ scriptdata01.dat	html5lib script related treebuilder tests
 #scripted/webkit01.dat		NA
 tables01.dat		html5lib treebuilder tests
 #template.dat		NA
-#tests10.dat		NA
+tests10.dat		html5lib treebuilder tests
 tests11.dat		html5lib treebuilder tests
 tests12.dat		html5lib treebuilder tests
 tests14.dat		html5lib treebuilder tests

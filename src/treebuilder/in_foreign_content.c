@@ -313,16 +313,6 @@ static bool element_in_scope_in_non_html_ns(hubbub_treebuilder *treebuilder)
 	assert((signed) treebuilder->context.current_node >= 0);
 
 	for (node = treebuilder->context.current_node; node > 0; node--) {
-		element_type node_type = stack[node].type;
-
-		/* The list of element types given in the spec here are the
-		 * scoping elements excluding TABLE and HTML. TABLE is handled
-		 * in the previous conditional and HTML should only occur
-		 * as the first node in the stack, which is never processed
-		 * in this loop. */
-		if (node_type == TABLE || is_scoping_element(node_type))
-			break;
-
 		if (stack[node].ns != HUBBUB_NS_HTML)
 			return true;
 	}
@@ -363,9 +353,10 @@ static hubbub_error process_as_in_secondary(hubbub_treebuilder *treebuilder,
 }
 
 /**
- * Break out of foreign content as a result of certain start tags or EOF.
+ * Handle certain start tags. Reprocessing is a must
+ * after calling this function.
  */
-static void foreign_break_out(hubbub_treebuilder *treebuilder)
+static void candidate_foreign_breakout(hubbub_treebuilder *treebuilder)
 {
 	element_context *stack = treebuilder->context.element_stack;
 	hubbub_ns ns;
@@ -374,6 +365,11 @@ static void foreign_break_out(hubbub_treebuilder *treebuilder)
 
 	/** \todo parse error */
 	/** todo fragment case */
+
+	element_stack_pop(treebuilder, &ns, &type, &node);
+		treebuilder->tree_handler->unref_node(
+				treebuilder->tree_handler->ctx,
+				node);
 
 	ns = stack[treebuilder->context.current_node].ns;
 	type = current_node(treebuilder);
@@ -400,7 +396,6 @@ static void foreign_break_out(hubbub_treebuilder *treebuilder)
 		attrs =	stack[treebuilder->context.current_node].
 			attributes;
 	}
-	treebuilder->context.mode = treebuilder->context.second_mode;
 }
 
 
@@ -490,7 +485,7 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 				type == SUB || type == SUP || type == TABLE || 
 				type == TT || type == U || type == UL || 
 				type == VAR) {
-			foreign_break_out(treebuilder);
+			candidate_foreign_breakout(treebuilder);
 			err = HUBBUB_REPROCESS;
 			handled = true;
 		} else if (type == FONT) {
@@ -518,7 +513,7 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 			}
 
 			if (found) {
-				foreign_break_out(treebuilder);
+				candidate_foreign_breakout(treebuilder);
 				err = HUBBUB_REPROCESS;
 				handled = true;
 			}
@@ -554,7 +549,7 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 		uint32_t node;
 		element_context *stack = treebuilder->context.element_stack;
 
-		for (node = treebuilder->context.current_node; node > 1; node--) {
+		for (node = treebuilder->context.current_node; node > 0;) {
 			if(stack[node].type == type) {
 				hubbub_ns ns;
 				element_type type;
@@ -568,17 +563,17 @@ hubbub_error handle_in_foreign_content(hubbub_treebuilder *treebuilder,
 				} while(node_iterator != vnode);
 				return HUBBUB_OK;
 			}
-			if(stack[node].ns == HUBBUB_NS_HTML) {
+			if(stack[--node].ns == HUBBUB_NS_HTML) {
 				break;
 			}
 		}
-		if(node > 1) {
+		if(node > 0) {
 			err = process_as_in_secondary(treebuilder, token);
 		}
 	}
 	break;
 	case HUBBUB_TOKEN_EOF:
-		foreign_break_out(treebuilder);
+		candidate_foreign_breakout(treebuilder);
 		err = HUBBUB_REPROCESS;
 		break;
 	}

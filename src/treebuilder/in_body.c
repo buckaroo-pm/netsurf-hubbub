@@ -1853,7 +1853,7 @@ hubbub_error process_0presentational_in_body(hubbub_treebuilder *treebuilder,
 		uint32_t common_ancestor;
 		uint32_t furthest_block;
 		bookmark bookmark;
-		uint32_t last_node;
+		uint32_t last_node = 0;
 		void *reparented;
 		void *fe_clone = NULL;
 		void *clone_appended = NULL;
