@@ -33,6 +33,7 @@ static hubbub_error process_meta_in_head(hubbub_treebuilder *treebuilder,
 	uint16_t content_type_enc = 0;
 	size_t i;
 	hubbub_error err = HUBBUB_OK;
+	bool http_equiv = false;
 
 	err = insert_element(treebuilder, &token->data.tag, false);
 	if (err != HUBBUB_OK)
@@ -57,6 +58,20 @@ static hubbub_error process_meta_in_head(hubbub_treebuilder *treebuilder,
 	for (i = 0; i < token->data.tag.n_attributes; i++) {
 		hubbub_attribute *attr = &token->data.tag.attributes[i];
 
+		if (hubbub_string_match_ci(attr->name.ptr, attr->name.len,
+				(const uint8_t *) "http-equiv",
+				SLEN("http-equiv")) == true &&
+			hubbub_string_match_ci(attr->value.ptr, attr->value.len,
+				(const uint8_t *) "content-type",
+				SLEN("content-type")) == true
+			) {
+			http_equiv = true;
+		}
+	}
+
+	for (i = 0; i < token->data.tag.n_attributes; i++) {
+		hubbub_attribute *attr = &token->data.tag.attributes[i];
+
 		if (hubbub_string_match(attr->name.ptr, attr->name.len,
 				(const uint8_t *) "charset",
 				SLEN("charset")) == true) {
@@ -66,7 +81,8 @@ static hubbub_error process_meta_in_head(hubbub_treebuilder *treebuilder,
 					attr->value.len);
 		} else if (hubbub_string_match(attr->name.ptr, attr->name.len,
 				(const uint8_t *) "content",
-				SLEN("content")) == true) {
+				SLEN("content")) == true &&
+				http_equiv == true) {
 			/* Extract charset from Content-Type */
 			content_type_enc = hubbub_charset_parse_content(
 					attr->value.ptr, attr->value.len);
