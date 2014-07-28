@@ -48,7 +48,8 @@ hubbub_error handle_in_head_noscript(hubbub_treebuilder *treebuilder,
 			err = handle_in_body(treebuilder, token);
 		} else if (type == NOSCRIPT) {
 			handled = true;
-		} else if (type == LINK || type == META || type == NOFRAMES ||
+		} else if (type == BASEFONT || type == BGSOUND ||
+				type == LINK || type == META || type == NOFRAMES ||
 				type == STYLE) {
 			/* Process as "in head" */
 			err = handle_in_head(treebuilder, token);
