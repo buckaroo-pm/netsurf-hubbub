@@ -47,12 +47,12 @@ ifeq ($(WANT_TEST),yes)
   # We require the presence of libjson -- http://oss.metaparadigm.com/json-c/
   ifneq ($(PKGCONFIG),)
     TESTCFLAGS := $(TESTCFLAGS) \
-		$(shell $(PKGCONFIG) $(PKGCONFIGFLAGS) --cflags json)
+		$(shell $(PKGCONFIG) $(PKGCONFIGFLAGS) --cflags json-c)
     TESTLDFLAGS := $(TESTLDFLAGS) \
-		$(shell $(PKGCONFIG) $(PKGCONFIGFLAGS) --libs json)
+		$(shell $(PKGCONFIG) $(PKGCONFIGFLAGS) --libs json-c)
   else
-    TESTCFLAGS := $(TESTCFLAGS) -I$(PREFIX)/include/json
-    TESTLDFLAGS := $(TESTLDFLAGS) -ljson
+    TESTCFLAGS := $(TESTCFLAGS) -I$(PREFIX)/include/json-c
+    TESTLDFLAGS := $(TESTLDFLAGS) -ljson-c
   endif
 
   ifneq ($(GCCVER),2)
