@@ -1,3 +1,9 @@
+#!/bin/make
+#
+# Makefile for libhubbub
+#
+# Copyright 2009-1015 John-Mark Bell <jmb@netsurf-browser.org>
+
 # Component settings
 COMPONENT := hubbub
 COMPONENT_VERSION := 0.3.1
@@ -21,8 +27,10 @@ ifneq ($(BUILD),i586-pc-haiku)
     WARNFLAGS := $(WARNFLAGS) -Werror
   endif
 endif
-CFLAGS := -D_BSD_SOURCE -I$(CURDIR)/include/ \
-	-I$(CURDIR)/src $(WARNFLAGS) $(CFLAGS)
+
+CFLAGS := -D_BSD_SOURCE -D_DEFAULT_SOURCE \
+	 -I$(CURDIR)/include/ -I$(CURDIR)/src \
+	$(WARNFLAGS) $(CFLAGS)
 ifneq ($(GCCVER),2)
   CFLAGS := $(CFLAGS) -std=c99
 else
