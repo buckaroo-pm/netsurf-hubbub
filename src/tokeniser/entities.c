@@ -30,11 +30,11 @@ typedef struct hubbub_entity_node {
  *         HUBBUB_NEEDDATA if more steps are required
  *         HUBBUB_INVALID if nothing matches
  *
- * The value pointed to by ::context must be NULL for the first call.
+ * The value pointed to by \p context must be NULL for the first call.
  * Thereafter, pass in the same value as returned by the previous call.
  * The context is opaque to the caller and should not be inspected.
  *
- * The location pointed to by ::result will be set to NULL unless a match
+ * The location pointed to by \p result will be set to NULL unless a match
  * is found.
  */
 static hubbub_error hubbub_entity_tree_search_step(uint8_t c,
@@ -93,11 +93,11 @@ static hubbub_error hubbub_entity_tree_search_step(uint8_t c,
  *         HUBBUB_NEEDDATA if more steps are required
  *         HUBBUB_INVALID if nothing matches
  *
- * The value pointed to by ::context should be -1 for the first call.
+ * The value pointed to by \p context should be -1 for the first call.
  * Thereafter, pass in the same value as returned by the previous call.
  * The context is opaque to the caller and should not be inspected.
  *
- * The location pointed to by ::result will be set to U+FFFD unless a match
+ * The location pointed to by \p result will be set to U+FFFD unless a match
  * is found.
  */
 hubbub_error hubbub_entities_search_step(uint8_t c, uint32_t *result,

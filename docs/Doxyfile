@@ -657,7 +657,6 @@ WARN_LOGFILE           =
 
 INPUT                  = src \
                          src/charset \
-                         src/input \
                          src/tokeniser \
                          src/treebuilder \
                          src/utils \

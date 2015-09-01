@@ -36,7 +36,7 @@ struct hubbub_parser {
  * \return HUBBUB_OK on success,
  *         HUBBUB_BADPARM on bad parameters,
  *         HUBBUB_NOMEM on memory exhaustion,
- *         HUBBUB_BADENCODING if ::enc is unsupported
+ *         HUBBUB_BADENCODING if \p enc is unsupported
  */
 hubbub_error hubbub_parser_create(const char *enc, bool fix_enc,
 		hubbub_parser **parser)

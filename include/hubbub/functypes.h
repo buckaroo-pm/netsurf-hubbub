@@ -33,7 +33,7 @@ typedef hubbub_error (*hubbub_token_handler)(
  * Type of parse error handling function
  *
  * \param line     Source line on which error occurred
- * \param col      Column in ::line of start of erroneous input
+ * \param col      Column in \p line of start of erroneous input
  * \param message  Error message
  * \param pw       Pointer to client data
  */

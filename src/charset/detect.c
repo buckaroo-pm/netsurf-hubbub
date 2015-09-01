@@ -36,7 +36,7 @@ static bool hubbub_charset_get_attribute(const uint8_t **data,
  * \param source   Pointer to location containint current charset source
  * \return PARSERUTILS_OK on success, appropriate error otherwise
  *
- * ::mibenum and ::source will be updated on exit
+ * \p mibenum and \p source will be updated on exit
  *
  * The larger a chunk of data fed to this routine, the better, as it allows
  * charset autodetection access to a larger dataset for analysis.
