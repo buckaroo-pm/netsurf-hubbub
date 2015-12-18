@@ -2,11 +2,11 @@
 #
 # Makefile for libhubbub
 #
-# Copyright 2009-1015 John-Mark Bell <jmb@netsurf-browser.org>
+# Copyright 2009-2015 John-Mark Bell <jmb@netsurf-browser.org>
 
 # Component settings
 COMPONENT := hubbub
-COMPONENT_VERSION := 0.3.1
+COMPONENT_VERSION := 0.3.2
 # Default to a static library
 COMPONENT_TYPE ?= lib-static
 
