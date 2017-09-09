@@ -369,6 +369,7 @@ uint16_t hubbub_charset_parse_attributes(const uint8_t **pos,
 uint16_t hubbub_charset_parse_content(const uint8_t *value,
 		uint32_t valuelen)
 {
+	const uint8_t *restart = value;
 	const uint8_t *end;
 	const uint8_t *tentative = NULL;
 	uint32_t tentative_len = 0;
@@ -388,8 +389,22 @@ uint16_t hubbub_charset_parse_content(const uint8_t *value,
 		value++;
 	}
 
-	if (value >= end)
-		return 0;
+	if (value >= end) {
+		/* Fallback, no semicolon, try for first whitespace */
+		value = restart;
+		while (value < end) {
+			/* This condition is odd, because ISSPACE() includes
+			 * forward slash, which we need to skip so that content
+			 * types work properly.
+			 */
+			if (ISSPACE(*value) && (*value != '/')) {
+				value++;
+				break;
+			}
+
+			value++;
+		}
+	}
 
 	/* 2 */
 	while (value < end && ISSPACE(*value)) {
