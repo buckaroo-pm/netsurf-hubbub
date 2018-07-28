@@ -98,6 +98,8 @@ int main(int argc, char **argv)
 		run_test(&ctx);
 	}
 
+	json_object_put(json);
+
 	printf("PASS\n");
 
 	return 0;
