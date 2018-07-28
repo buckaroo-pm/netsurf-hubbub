@@ -247,6 +247,7 @@ int main(int argc, char **argv)
 
 	printf("PASS\n");
 
+	free(chunks);
 	fclose(fp);
 
 	free(got.buf);
