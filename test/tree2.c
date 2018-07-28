@@ -879,9 +879,12 @@ static void node_print(buf_t *buf, node_t *node, unsigned depth)
 		buf_add(buf, node->data.element.name);
 		buf_add(buf, ">\n");
 
-		qsort(node->data.element.attrs, node->data.element.n_attrs,
-				sizeof *node->data.element.attrs,
-				compare_attrs);
+		if (node->data.element.n_attrs > 0) {
+			qsort(node->data.element.attrs,
+					node->data.element.n_attrs,
+					sizeof *node->data.element.attrs,
+					compare_attrs);
+		}
 
 		for (i = 0; i < node->data.element.n_attrs; i++) {
 			indent(buf, depth + 1);
