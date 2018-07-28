@@ -228,7 +228,10 @@ int main(int argc, char **argv)
 			buf_clear(&got);
 			buf_clear(&expected);
 
-			hubbub_parser_destroy(parser);
+			if (parser != NULL) {
+				hubbub_parser_destroy(parser);
+				parser = NULL;
+			}
 			while (Document) {
 				node_t *victim = Document;
 				Document = victim->next;
@@ -316,7 +319,10 @@ int main(int argc, char **argv)
 			printf("%s", got.buf);
 		}
 
-		hubbub_parser_destroy(parser);
+		if (parser != NULL) {
+			hubbub_parser_destroy(parser);
+			parser = NULL;
+		}
 		while (Document) {
 			node_t *victim = Document;
 			Document = victim->next;
@@ -330,6 +336,10 @@ int main(int argc, char **argv)
 
 	free(got.buf);
 	free(expected.buf);
+
+	if (parser != NULL) {
+		hubbub_parser_destroy(parser);
+	}
 
 	return 0;
 }
