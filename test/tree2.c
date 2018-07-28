@@ -237,6 +237,7 @@ int main(int argc, char **argv)
 			Document = NULL;
 
 			state = EXPECT_DATA;
+			/* Fall through. */
 
  		case EXPECT_DATA:
 			if (strcmp(line, "#data\n") == 0) {
