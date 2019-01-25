@@ -1,0 +1,9 @@
+cxx_binary(
+  name = 'hubbub',
+  srcs = [
+    'hubbub.c',
+  ],
+  deps = [
+    '//:hubbub',
+  ],
+)

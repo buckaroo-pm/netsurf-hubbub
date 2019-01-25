@@ -1,0 +1,24 @@
+prebuilt_cxx_library(
+  name = 'xml2',
+  header_only = True,
+  exported_linker_flags = [
+    '-lxml2',
+  ],
+)
+
+cxx_binary(
+  name = 'libxml',
+  srcs = [
+    'libxml.c',
+  ],
+  preprocessor_flags = [
+    '-I/usr/include/libxml2',
+  ],
+  linker_flags = [
+    '-lxml2',
+  ],
+  deps = [
+    '//:hubbub',
+    ':xml2',
+  ],
+)
