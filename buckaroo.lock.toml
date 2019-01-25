@@ -1,4 +1,4 @@
-manifest = "42a410a71457dd84e799d42f4640c3c71c003730b4637b6acedbd1ef3d623188"
+manifest = "670fb36f72c21b698fd4fd73624902c8a3d22fb2861cb0fb41a39b4382b21f7b"
 
 [[dependency]]
 package = "github.com/buckaroo-pm/netsurf-parserutils"
