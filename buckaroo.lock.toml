@@ -1,0 +1,9 @@
+manifest = "42a410a71457dd84e799d42f4640c3c71c003730b4637b6acedbd1ef3d623188"
+
+[[dependency]]
+package = "github.com/buckaroo-pm/netsurf-parserutils"
+target = "//:parserutils"
+
+[lock."github.com/buckaroo-pm/netsurf-parserutils"]
+versions = [ "branch=master" ]
+revision = "bdee37e518fa178e8eaaa80fc6a8ac2eeb23f0be"

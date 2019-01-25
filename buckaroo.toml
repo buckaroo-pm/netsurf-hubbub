@@ -1,0 +1,5 @@
+targets = [ "//:hubbub" ]
+
+[[dependency]]
+package = "github.com/buckaroo-pm/netsurf-parserutils"
+version = "branch=master"

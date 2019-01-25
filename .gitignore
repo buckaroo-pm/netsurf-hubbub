@@ -2,3 +2,10 @@ build-*
 Makefile.config.override
 src/tokeniser/entities.inc
 docs/html
+
+.buckd
+buck-out
+.buckconfig.local
+.buckconfig.d
+buckaroo
+buckaroo_macros.bzl
